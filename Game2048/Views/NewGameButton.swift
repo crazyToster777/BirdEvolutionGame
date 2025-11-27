@@ -6,7 +6,7 @@ struct NewGameButton: View {
     let action: VoidCallback
     
     var body: some View {
-        Button("New Game", action: action)
+        Button("Start Evolution", action: action)
             .padding(.horizontal, 20)
             .padding(.vertical, 12)
             .background(buttonGradient)

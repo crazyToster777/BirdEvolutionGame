@@ -7,14 +7,16 @@ class Game2048Model {
     
     func createNewGame() -> GameState {
         var gameState = GameState()
-        gameState = addRandomTile(to: gameState)
-        gameState = addRandomTile(to: gameState)
+        let result1 = addRandomTile(to: gameState)
+        gameState = result1.gameState
+        let result2 = addRandomTile(to: gameState)
+        gameState = result2.gameState
         return gameState
     }
     
-    func addRandomTile(to gameState: GameState) -> GameState {
+    func addRandomTile(to gameState: GameState) -> (gameState: GameState, newTilePosition: Position?) {
         let emptyCells = gameState.emptyCells
-        guard !emptyCells.isEmpty else { return gameState }
+        guard !emptyCells.isEmpty else { return (gameState, nil) }
         
         let randomCell = emptyCells.randomElement()!
         let value = Int.random(in: 1...10) == 1 ? 4 : 2
@@ -23,12 +25,12 @@ class Game2048Model {
         newGameState.grid[randomCell.row][randomCell.col] = value
         newGameState.maxTileValue = newGameState.calculatedMaxTileValue
         
-        return newGameState
+        return (newGameState, randomCell)
     }
     
     func performMove(_ direction: Direction, on gameState: GameState) -> MoveResult {
         guard !gameState.gameOver else {
-            return MoveResult(newGrid: gameState.grid, scoreGained: 0, hasWon: false, gridChanged: false, mergedPositions: [])
+            return MoveResult(newGrid: gameState.grid, scoreGained: 0, hasWon: false, gridChanged: false, mergedPositions: [], newTilePositions: [])
         }
         
         let result = moveGrid(gameState.grid, in: direction)
@@ -38,7 +40,8 @@ class Game2048Model {
             scoreGained: result.scoreGained,
             hasWon: result.hasWon,
             gridChanged: !gridsAreEqual(gameState.grid, result.grid),
-            mergedPositions: result.mergedPositions
+            mergedPositions: result.mergedPositions,
+            newTilePositions: []
         )
     }
     

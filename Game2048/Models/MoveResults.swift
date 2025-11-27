@@ -8,4 +8,5 @@ struct MoveResult {
     let hasWon: Bool
     let gridChanged: Bool
     let mergedPositions: Set<Position>
+    let newTilePositions: Set<Position>
 }

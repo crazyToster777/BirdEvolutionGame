@@ -6,15 +6,9 @@
 //
 
 import SwiftUI
-import GoogleMobileAds
 
 @main
 struct newgameApp: App {
-    init() {
-       MobileAds.shared.start() { initializationStatus in
-               print("AdMob SDK initialized")
-           }
-       }
     
     @StateObject private var gameViewModel = Game2048ViewModel()
     var body: some Scene {

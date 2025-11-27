@@ -8,11 +8,27 @@ struct TileView: View {
     let rotationTrigger: Int
     let rotationDirection: MergeRotationGameBoardView.RotationDirection
     let shouldRotate: Bool
+    let isNewTile: Bool
+    let newTileTrigger: Int
     
     @State private var rotationX: Double = 0
     @State private var rotationY: Double = 0
     @State private var lastTrigger: Int = 0
     @State private var isAnimating = false
+    @State private var scale: Double = 1.0
+    @State private var lastNewTileTrigger: Int = 0
+    
+    init(value: Int, position: Position, rotationTrigger: Int, rotationDirection: MergeRotationGameBoardView.RotationDirection, shouldRotate: Bool, isNewTile: Bool, newTileTrigger: Int) {
+        self.value = value
+        self.position = position
+        self.rotationTrigger = rotationTrigger
+        self.rotationDirection = rotationDirection
+        self.shouldRotate = shouldRotate
+        self.isNewTile = isNewTile
+        self.newTileTrigger = newTileTrigger
+        
+        _scale = State(initialValue: isNewTile ? 0.1 : 1.0)
+    }
     
     var body: some View {
         ZStack {
@@ -20,13 +36,17 @@ struct TileView: View {
                 .fill(tileGradient)
                 .frame(width: 70, height: 70)
             
+            
             if value > 0 {
-                Text("\(value)")
-                    .font(.title2)
-                    .fontWeight(.bold)
-                    .foregroundColor(.white)
+                Image("\(value)") // loads the image set named "2"
+                    .resizable()                // make it resizable
+                    .scaledToFit()              // preserve aspect ratio
+                    .frame(width: 70, height: 70)
+                    .clipped()
+                    .cornerRadius(8)
             }
         }
+        .scaleEffect(scale)
         .rotation3DEffect(.degrees(rotationX), axis: (1,0,0))
         .rotation3DEffect(.degrees(rotationY), axis: (0,1,0))
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: value)
@@ -34,6 +54,17 @@ struct TileView: View {
             if newValue != lastTrigger && shouldRotate {
                 performDirectionalRotation()
                 lastTrigger = newValue
+            }
+        }
+        .onAppear {
+            if isNewTile {
+                performNewTileAnimation()
+            }
+        }
+        .onChange(of: newTileTrigger) { oldValue, newValue in
+            if newValue != lastNewTileTrigger && isNewTile {
+                performNewTileAnimation()
+                lastNewTileTrigger = newValue
             }
         }
     }
@@ -51,7 +82,7 @@ struct TileView: View {
         )
     }
     
-
+    
     
     private func getTileColors(for value: Int) -> [Color] {
         switch value {
@@ -67,6 +98,18 @@ struct TileView: View {
         case 1024: return [.indigo, .purple]
         case 2048: return [.yellow, .orange]
         default: return [.gray, .black]
+        }
+    }
+    private func getTileImg(for value: Int) -> String {
+        switch value {
+        case 2: return "2"
+        case 4: return "4"
+        case 8: return "8"
+        case 16: return "16"
+        case 32: return "32"
+        case 64: return "64"
+        case 128: return "128"
+        default: return "2"
         }
     }
     
@@ -101,6 +144,14 @@ struct TileView: View {
             isAnimating = false
             rotationX = 0
             rotationY = 0
+        }
+    }
+    
+    private func performNewTileAnimation() {
+        guard value > 0 else { return }
+        
+        withAnimation(.spring(response: 0.6, dampingFraction: 0.8, blendDuration: 0)) {
+            scale = 1.0
         }
     }
 }
