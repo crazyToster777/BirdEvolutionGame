@@ -11,6 +11,14 @@ struct MergeRotationGameBoardView: View {
     @State private var rotationTrigger = 0
     @State private var newTileTrigger = 0
     
+    private var tileSize: CGFloat {
+        game.gridSize.tileSize
+    }
+    
+    private var spacing: CGFloat {
+        game.gridSize.spacing
+    }
+    
     enum RotationDirection {
         case leftSpin
         case rightSpin 
@@ -20,10 +28,10 @@ struct MergeRotationGameBoardView: View {
     }
     
     var body: some View {
-        VStack(spacing: 8) {
-            ForEach(0..<4, id: \.self) { row in
-                HStack(spacing: 8) {
-                    ForEach(0..<4, id: \.self) { col in
+        VStack(spacing: spacing) {
+            ForEach(0..<game.gridSize.rawValue, id: \.self) { row in
+                HStack(spacing: spacing) {
+                    ForEach(0..<game.gridSize.rawValue, id: \.self) { col in
                         TileView(
                             value: game.grid[row][col],
                             position: Position(row: row, col: col),
@@ -31,7 +39,8 @@ struct MergeRotationGameBoardView: View {
                             rotationDirection: rotationDirection,
                             shouldRotate: mergedPositions.contains(Position(row: row, col: col)),
                             isNewTile: newTilePositions.contains(Position(row: row, col: col)),
-                            newTileTrigger: newTileTrigger
+                            newTileTrigger: newTileTrigger,
+                            tileSize: tileSize
                         )
                     }
                 }
@@ -41,25 +50,25 @@ struct MergeRotationGameBoardView: View {
         .background(Color.gray.opacity(0.5))
         .cornerRadius(12)
         .gesture(
-            DragGesture(minimumDistance: 30)
+            DragGesture(minimumDistance: GameConstants.minimumDragDistance)
                 .onEnded { value in
                     let deltaX = value.translation.width
                     let deltaY = value.translation.height
                     playRandomSwipe()
                 
                     if abs(deltaX) > abs(deltaY) {
-                        if deltaX > 50 {
+                        if deltaX > GameConstants.swipeThreshold {
                             rotationDirection = .rightSpin
                             performMoveWithMergeRotation(.right)
-                        } else if deltaX < -50 {
+                        } else if deltaX < -GameConstants.swipeThreshold {
                             rotationDirection = .leftSpin
                             performMoveWithMergeRotation(.left)
                         }
                     } else {
-                        if deltaY > 50 {
+                        if deltaY > GameConstants.swipeThreshold {
                             rotationDirection = .downFlip
                             performMoveWithMergeRotation(.down)
-                        } else if deltaY < -50 {
+                        } else if deltaY < -GameConstants.swipeThreshold {
                             rotationDirection = .upFlip
                             performMoveWithMergeRotation(.up)
                         }
@@ -71,11 +80,10 @@ struct MergeRotationGameBoardView: View {
 
     func playRandomSwipe() {
          // List of available swipe sounds
-         let sounds = ["swipe1", "swipe2"]
          
          // Pick one at random
-         if let chosen = sounds.randomElement(),
-            let soundURL = Bundle.main.url(forResource: chosen, withExtension: "wav") {
+         if let chosen = GameConstants.swipeSounds.randomElement(),
+            let soundURL = Bundle.main.url(forResource: chosen, withExtension: GameConstants.audioExtension) {
              
              var soundID: SystemSoundID = 0
              AudioServicesCreateSystemSoundID(soundURL as CFURL, &soundID)
@@ -89,11 +97,11 @@ struct MergeRotationGameBoardView: View {
         if !moveResult.mergedPositions.isEmpty {
             mergedPositions = moveResult.mergedPositions
             
-            withAnimation(.easeInOut(duration: 0.15)) {
+            withAnimation(.easeInOut(duration: GameConstants.mergeRotationDuration)) {
                 rotationTrigger += 1
             }
             
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + GameConstants.mergeRotationDelay) {
                 mergedPositions.removeAll()
             }
         }
@@ -101,7 +109,7 @@ struct MergeRotationGameBoardView: View {
         if !moveResult.newTilePositions.isEmpty {
             newTilePositions = moveResult.newTilePositions
             
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + GameConstants.newTileDelay) {
                 newTilePositions.removeAll()
             }
         }

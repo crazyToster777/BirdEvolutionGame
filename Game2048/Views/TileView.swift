@@ -10,6 +10,7 @@ struct TileView: View {
     let shouldRotate: Bool
     let isNewTile: Bool
     let newTileTrigger: Int
+    let tileSize: CGFloat
     
     @State private var rotationX: Double = 0
     @State private var rotationY: Double = 0
@@ -18,7 +19,7 @@ struct TileView: View {
     @State private var scale: Double = 1.0
     @State private var lastNewTileTrigger: Int = 0
     
-    init(value: Int, position: Position, rotationTrigger: Int, rotationDirection: MergeRotationGameBoardView.RotationDirection, shouldRotate: Bool, isNewTile: Bool, newTileTrigger: Int) {
+    init(value: Int, position: Position, rotationTrigger: Int, rotationDirection: MergeRotationGameBoardView.RotationDirection, shouldRotate: Bool, isNewTile: Bool, newTileTrigger: Int, tileSize: CGFloat = 70) {
         self.value = value
         self.position = position
         self.rotationTrigger = rotationTrigger
@@ -26,6 +27,7 @@ struct TileView: View {
         self.shouldRotate = shouldRotate
         self.isNewTile = isNewTile
         self.newTileTrigger = newTileTrigger
+        self.tileSize = tileSize
         
         _scale = State(initialValue: isNewTile ? 0.1 : 1.0)
     }
@@ -34,14 +36,14 @@ struct TileView: View {
         ZStack {
             RoundedRectangle(cornerRadius: 8)
                 .fill(tileGradient)
-                .frame(width: 70, height: 70)
+                .frame(width: tileSize, height: tileSize)
             
             
             if value > 0 {
                 Image("\(value)") // loads the image set named "2"
                     .resizable()                // make it resizable
                     .scaledToFit()              // preserve aspect ratio
-                    .frame(width: 70, height: 70)
+                    .frame(width: tileSize, height: tileSize)
                     .clipped()
                     .cornerRadius(8)
             }

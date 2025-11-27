@@ -1,16 +1,25 @@
-
 import Foundation
 
 
 class GamePersistenceManager {
-    private let bestScoreKey = "bestScore"
+    private let userDefaults = UserDefaults.standard
     
-    func loadBestScore() -> Int {
-        return UserDefaults.standard.integer(forKey: bestScoreKey)
+    func loadBestScore(for gridSize: Int = 4) -> Int {
+        let key = "bestScore_\(gridSize)x\(gridSize)"
+        return userDefaults.integer(forKey: key)
     }
     
-    func saveBestScore(_ score: Int) {
-        UserDefaults.standard.set(score, forKey: bestScoreKey)
+    func saveBestScore(_ score: Int, for gridSize: Int = 4) {
+        let key = "bestScore_\(gridSize)x\(gridSize)"
+        userDefaults.set(score, forKey: key)
+    }
+    
+    // Legacy support for old saves (4x4 only)
+    func migrateLegacyBestScore() {
+        if let oldScore = userDefaults.value(forKey: "bestScore") as? Int {
+            saveBestScore(oldScore, for: 4)
+            userDefaults.removeObject(forKey: "bestScore")
+        }
     }
     
     func saveGame(_ gameState: GameState) {

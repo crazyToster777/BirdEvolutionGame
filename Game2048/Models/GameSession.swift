@@ -7,6 +7,7 @@ struct GameSession: Codable, Identifiable {
     let maxTile: Int
     let gamesPlayed: Int
     let totalMoves: Int
+    let gridSize: Int
     
     var dayKey: String {
         let formatter = DateFormatter()
@@ -21,9 +22,11 @@ struct DayStats: Codable {
     var bestScore: Int
     var bestTile: Int
     var totalMoves: Int
+    var gridSize: Int
     
-    init(date: Date) {
+    init(date: Date, gridSize: Int = 4) {
         self.date = date
+        self.gridSize = gridSize
         self.totalGames = 0
         self.bestScore = 0
         self.bestTile = 0

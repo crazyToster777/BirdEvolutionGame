@@ -3,10 +3,14 @@ import Foundation
 
 
 class Game2048Model {
-    private let gridSize = 4
+    let gridSize: Int
+    
+    init(gridSize: Int = 4) {
+        self.gridSize = gridSize
+    }
     
     func createNewGame() -> GameState {
-        var gameState = GameState()
+        var gameState = GameState(gridSize: gridSize)
         let result1 = addRandomTile(to: gameState)
         gameState = result1.gameState
         let result2 = addRandomTile(to: gameState)
