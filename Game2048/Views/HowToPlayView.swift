@@ -9,27 +9,29 @@ import SwiftUI
 
 struct HowToPlayView: View {
     var body: some View {
-        
-        let tiles = ["2","4","8","16","32","64","128","256","512","1024","2048"]
-
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack {
-                ForEach(0..<tiles.count, id: \.self) { i in
-                    Image(tiles[i])
+            HStack(spacing: 8) {
+                ForEach(Array(["2", "4", "8", "16", "32", "64", "128", "256", "512", "1024", "2048", "4096", "8192", "16384"].enumerated()), id: \.offset) { index, tile in
+                    Image(tile)
                         .resizable()
+                        .scaledToFit()
                         .frame(width: 50, height: 50)
+                        .cornerRadius(6)
                     
-                    if i < tiles.count - 1 {
+                    if index < 13 {
                         Image(systemName: "arrow.right")
+                            .font(.caption)
+                            .foregroundColor(.blue)
                     }
                 }
             }
-            .padding()
+            .padding(.horizontal)
         }
-       
     }
 }
 
 #Preview {
     HowToPlayView()
+        .padding()
+        .background(Color(.systemGroupedBackground))
 }

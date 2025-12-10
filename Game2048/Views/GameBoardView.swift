@@ -1,10 +1,10 @@
 
 import SwiftUI
 import AVFoundation
-import AudioToolbox
 
 struct MergeRotationGameBoardView: View {
     @ObservedObject var game: Game2048ViewModel
+    @EnvironmentObject var audioManager: AudioManager
     @State private var rotationDirection: RotationDirection = .rightSpin
     @State private var mergedPositions: Set<Position> = []
     @State private var newTilePositions: Set<Position> = []
@@ -54,7 +54,10 @@ struct MergeRotationGameBoardView: View {
                 .onEnded { value in
                     let deltaX = value.translation.width
                     let deltaY = value.translation.height
-                    playRandomSwipe()
+                    
+                    // Play swipe sound and start music on first swipe
+                    audioManager.playSwipeSound()
+                    audioManager.playBackgroundMusic()
                 
                     if abs(deltaX) > abs(deltaY) {
                         if deltaX > GameConstants.swipeThreshold {
@@ -76,20 +79,6 @@ struct MergeRotationGameBoardView: View {
                 }
         )
     }
-    
-
-    func playRandomSwipe() {
-         // List of available swipe sounds
-         
-         // Pick one at random
-         if let chosen = GameConstants.swipeSounds.randomElement(),
-            let soundURL = Bundle.main.url(forResource: chosen, withExtension: GameConstants.audioExtension) {
-             
-             var soundID: SystemSoundID = 0
-             AudioServicesCreateSystemSoundID(soundURL as CFURL, &soundID)
-             AudioServicesPlaySystemSound(soundID)
-         }
-     }
     
     private func performMoveWithMergeRotation(_ direction: Direction) {
         let moveResult = game.move(direction)

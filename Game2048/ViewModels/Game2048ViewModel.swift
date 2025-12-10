@@ -14,6 +14,8 @@ class Game2048ViewModel: ObservableObject {
     private var currentSessionStartTime: Date = Date()
     private var gameStateHistory: [GameState] = []
     private let maxHistorySize = GameConstants.maxUndos
+    private var hasUsedUndo: Bool = false
+    private var gamesCompleted: Int = 0
 
     var grid: [[Int]] { gameState.grid }
     var score: Int { gameState.score }
@@ -84,8 +86,13 @@ class Game2048ViewModel: ObservableObject {
             gameState.gameOver = true
             updateBestScore()
             recordGameSession()
+            gamesCompleted += 1
+            TutorialManager.shared.checkGridSizeHint(gamesCompleted: gamesCompleted)
         }
-
+        
+        // Check for undo hint
+        TutorialManager.shared.checkUndoHint(moveCount: currentSessionMoves, hasUsedUndo: hasUsedUndo)
+        
         return (moveResult.mergedPositions, newTilePositions)
     }
 
@@ -98,17 +105,21 @@ class Game2048ViewModel: ObservableObject {
     func undo() {
         guard canUndo else { return }
         guard let previousState = gameStateHistory.popLast() else { return }
-
+        
         // Restore previous state but keep the decremented undo count
         var restoredState = previousState
         restoredState.undosRemaining = gameState.undosRemaining - 1
-
+        
         gameState = restoredState
-
+        
         // Decrement session moves since we're undoing
         if currentSessionMoves > 0 {
             currentSessionMoves -= 1
         }
+        
+        // Mark that undo has been used
+        hasUsedUndo = true
+        TutorialManager.shared.markUndoSeen()
     }
 
     private func saveStateToHistory() {
@@ -135,31 +146,49 @@ class Game2048ViewModel: ObservableObject {
     // MARK: - Debug/Test Functions
     #if DEBUG
     func fillAllCellsRandom() {
-        let possibleValues = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024]
-
-        for row in 0..<4 {
-            for col in 0..<4 {
-                gameState.grid[row][col] = possibleValues.randomElement() ?? 2
+        for row in 0..<gameState.gridSize {
+            for col in 0..<gameState.gridSize {
+                gameState.grid[row][col] = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024].randomElement() ?? 2
             }
         }
-
-        updateGameStateAfterTest()
-
-        func updateGameStateAfterTest() {
-               gameState.maxTileValue = gameState.calculatedMaxTileValue
-
-               // Проверяем состояние игры
-               if gameState.calculatedMaxTileValue >= 2048 && !gameState.hasWon {
-                   gameState.hasWon = true
-               }
-
-               // Проверяем Game Over только если сетка полная
-               if !gameState.hasEmptyCells {
-                   gameState.gameOver = gameModel.checkGameOver(for: gameState)
-               } else {
-                   gameState.gameOver = false
-               }
-           }
+        gameState.maxTileValue = gameState.calculatedMaxTileValue
+    }
+    
+    func testWinScreen() {
+        // Create a grid with 2048 tile for testing win screen
+        var testGrid = Array(repeating: Array(repeating: 0, count: gameState.gridSize), count: gameState.gridSize)
+        
+        // Add 2048 tile in center
+        let center = gameState.gridSize / 2
+        testGrid[center][center] = 2048
+        
+        // Add some other tiles around it
+        testGrid[0][0] = 2
+        testGrid[0][1] = 4
+        testGrid[1][0] = 8
+        testGrid[1][1] = 16
+        
+        gameState.grid = testGrid
+        gameState.maxTileValue = 2048
+        gameState.hasWon = true
+        gameState.score = 12345
+        gameState.gameOver = false
+    }
+    
+    func testGameOver() {
+        // Fill grid with non-mergeable tiles for testing game over
+        var testGrid = Array(repeating: Array(repeating: 0, count: gameState.gridSize), count: gameState.gridSize)
+        
+        for row in 0..<gameState.gridSize {
+            for col in 0..<gameState.gridSize {
+                // Alternate between 2 and 4 to make grid full but not mergeable
+                testGrid[row][col] = (row + col) % 2 == 0 ? 2 : 4
+            }
+        }
+        
+        gameState.grid = testGrid
+        gameState.gameOver = true
+        gameState.score = 5678
     }
     #endif
 
@@ -241,6 +270,9 @@ class Game2048ViewModel: ObservableObject {
         // Clear undo history
         gameStateHistory.removeAll()
         gameState.undosRemaining = GameConstants.maxUndos
+        
+        // Mark grid size hint as seen
+        TutorialManager.shared.markGridSizeSeen()
     }
 
     private func loadGridSize() {

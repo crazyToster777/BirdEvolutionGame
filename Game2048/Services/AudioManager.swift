@@ -1,11 +1,13 @@
 import Foundation
 import AVFoundation
+import AudioToolbox
 
 class AudioManager: ObservableObject {
     static let shared = AudioManager()
     
     private var backgroundMusicPlayer: AVAudioPlayer?
-    @Published var isMusicPlaying: Bool = false
+    @Published var isSoundEnabled: Bool = true
+    private var hasStartedPlaying: Bool = false
     
     private init() {
         configureAudioSession()
@@ -14,9 +16,13 @@ class AudioManager: ObservableObject {
     
     private func configureAudioSession() {
         do {
-            // Use .ambient category to respect silent mode
+            // Use .ambient with .mixWithOthers to allow sound effects and music to play together
             // Music will automatically stop when silent switch is on
-            try AVAudioSession.sharedInstance().setCategory(.ambient, mode: .default)
+            try AVAudioSession.sharedInstance().setCategory(
+                .ambient,
+                mode: .default,
+                options: [.mixWithOthers]
+            )
             try AVAudioSession.sharedInstance().setActive(true)
         } catch {
             print("Failed to configure audio session: \(error.localizedDescription)")
@@ -40,20 +46,43 @@ class AudioManager: ObservableObject {
     }
     
     func playBackgroundMusic() {
+        guard isSoundEnabled else { return }
+        
+        if !hasStartedPlaying {
+            hasStartedPlaying = true
+        }
+        
         backgroundMusicPlayer?.play()
-        isMusicPlaying = true
     }
     
     func pauseBackgroundMusic() {
         backgroundMusicPlayer?.pause()
-        isMusicPlaying = false
     }
     
-    func toggleBackgroundMusic() {
-        if isMusicPlaying {
-            pauseBackgroundMusic()
+    func toggleSound() {
+        isSoundEnabled.toggle()
+        
+        if isSoundEnabled {
+            // Resume music if it was playing before
+            if hasStartedPlaying {
+                playBackgroundMusic()
+            }
         } else {
-            playBackgroundMusic()
+            // Pause music when sound is disabled
+            pauseBackgroundMusic()
+        }
+    }
+    
+    func playSwipeSound() {
+        guard isSoundEnabled else { return }
+        
+        // Pick a random swipe sound
+        if let chosen = GameConstants.swipeSounds.randomElement(),
+           let soundURL = Bundle.main.url(forResource: chosen, withExtension: GameConstants.audioExtension) {
+            
+            var soundID: SystemSoundID = 0
+            AudioServicesCreateSystemSoundID(soundURL as CFURL, &soundID)
+            AudioServicesPlaySystemSound(soundID)
         }
     }
     
@@ -61,3 +90,4 @@ class AudioManager: ObservableObject {
         backgroundMusicPlayer?.volume = min(max(volume, 0.0), 1.0)
     }
 }
+

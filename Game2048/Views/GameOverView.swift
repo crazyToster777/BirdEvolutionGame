@@ -1,20 +1,22 @@
 import SwiftUI
 
-struct WinView: View {
+struct GameOverView: View {
     let score: Int
-    let maxTile: Int
-    let onContinue: VoidCallback
+    let bestScore: Int
+    let canUndo: Bool
+    let onUndo: VoidCallback
     let onNewGame: VoidCallback
     
     @Environment(\.dismiss) private var dismiss
-    @State private var crownRotation: Double = 0
+    @State private var skullRotation: Double = 0
     @State private var scale: CGFloat = 0.5
+    @State private var opacity: Double = 0
     
     var body: some View {
         ZStack {
-            // Background gradient matching onboarding
+            // Background gradient matching WinView style
             LinearGradient(
-                colors: [Color.blue.opacity(0.3), Color.purple.opacity(0.3)],
+                colors: [Color.red.opacity(0.3), Color.orange.opacity(0.3)],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
@@ -23,17 +25,17 @@ struct WinView: View {
             VStack(spacing: 40) {
                 Spacer()
                 
-                // Crown icon with rotation
-                Text("👑")
+                // Skull icon with rotation animation
+                Text("💀")
                     .font(.system(size: 100))
-                    .rotationEffect(.degrees(crownRotation))
+                    .rotationEffect(.degrees(skullRotation))
                 
                 // Title
                 VStack(spacing: 12) {
-                    Text("Victory!")
+                    Text("Game Over")
                         .font(.system(size: 48, weight: .bold))
                     
-                    Text("You reached \(maxTile)!")
+                    Text("No more moves available")
                         .font(.title2)
                         .foregroundColor(.secondary)
                 }
@@ -42,7 +44,7 @@ struct WinView: View {
                 VStack(spacing: 20) {
                     HStack(spacing: 40) {
                         StatItem(icon: "star.fill", label: "Score", value: "\(score)")
-                        StatItem(icon: "crown.fill", label: "Max Tile", value: "\(maxTile)")
+                        StatItem(icon: "trophy.fill", label: "Best", value: "\(bestScore)")
                     }
                 }
                 .padding(24)
@@ -55,29 +57,33 @@ struct WinView: View {
                 
                 // Action buttons
                 VStack(spacing: 16) {
-                    Button(action: {
-                        dismiss()
-                        onContinue()
-                    }) {
-                        HStack {
-                            Image(systemName: "arrow.forward.circle.fill")
-                            Text("Continue Playing")
-                        }
-                        .font(.title3.bold())
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(
-                            LinearGradient(
-                                colors: [Color.green, Color.green.opacity(0.8)],
-                                startPoint: .leading,
-                                endPoint: .trailing
+                    // Undo button (only if available)
+                    if canUndo {
+                        Button(action: {
+                            dismiss()
+                            onUndo()
+                        }) {
+                            HStack {
+                                Image(systemName: "arrow.uturn.backward.circle.fill")
+                                Text("Undo Last Move")
+                            }
+                            .font(.title3.bold())
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(
+                                LinearGradient(
+                                    colors: [Color.orange, Color.orange.opacity(0.8)],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
                             )
-                        )
-                        .cornerRadius(16)
-                        .shadow(color: .green.opacity(0.3), radius: 10, x: 0, y: 5)
+                            .cornerRadius(16)
+                            .shadow(color: .orange.opacity(0.3), radius: 10, x: 0, y: 5)
+                        }
                     }
                     
+                    // New Game button
                     Button(action: {
                         dismiss()
                         onNewGame()
@@ -106,6 +112,7 @@ struct WinView: View {
                 Spacer()
             }
             .scaleEffect(scale)
+            .opacity(opacity)
             .onAppear {
                 startAnimations()
             }
@@ -113,44 +120,29 @@ struct WinView: View {
     }
     
     private func startAnimations() {
-        // Crown rotation animation
-        withAnimation(.easeInOut(duration: 3.0).repeatForever(autoreverses: true)) {
-            crownRotation = 20
+        // Skull rotation animation
+        withAnimation(.easeInOut(duration: 2.5).repeatForever(autoreverses: true)) {
+            skullRotation = 15
         }
         
         // Scale in animation
         withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
             scale = 1.0
         }
-    }
-}
-
-struct StatItem: View {
-    let icon: String
-    let label: String
-    let value: String
-    
-    var body: some View {
-        VStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.system(size: 30))
-                .foregroundColor(.blue)
-            
-            Text(label)
-                .font(.caption)
-                .foregroundColor(.secondary)
-            
-            Text(value)
-                .font(.title2.bold())
+        
+        // Fade in animation
+        withAnimation(.easeIn(duration: 0.3)) {
+            opacity = 1.0
         }
     }
 }
 
 #Preview {
-    WinView(
-        score: 12345,
-        maxTile: 2048,
-        onContinue: {},
+    GameOverView(
+        score: 1234,
+        bestScore: 5678,
+        canUndo: true,
+        onUndo: {},
         onNewGame: {}
     )
 }

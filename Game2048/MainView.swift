@@ -4,8 +4,11 @@ import SwiftUI
 struct MainView: View {
     @EnvironmentObject var game: Game2048ViewModel
     @EnvironmentObject var audioManager: AudioManager
+    @EnvironmentObject var themeManager: ThemeManager
+    @StateObject private var tutorialManager = TutorialManager.shared
     @State private var showingCalendar = false
     @State private var showingGridSelector = false
+    @State private var showOnboarding = false
     
     var body: some View {
         NavigationView {
@@ -80,15 +83,48 @@ struct MainView: View {
                 }
             }
             
+            #if DEBUG
+            ToolbarItem(placement: .navigationBarLeading) {
+                Menu {
+                    Button("🏆 Test Win Screen") {
+                        game.testWinScreen()
+                    }
+                    Button("💀 Test Game Over") {
+                        game.testGameOver()
+                    }
+                    Button("🎲 Fill Random") {
+                        game.fillAllCellsRandom()
+                    }
+                    Divider()
+                    Button("🔄 Reset Tutorials") {
+                        tutorialManager.resetAllTutorials()
+                    }
+                } label: {
+                    Color.clear
+                        .frame(width: 30, height: 30)
+                        .contentShape(Rectangle())
+                }
+            }
+            #endif
+            
             ToolbarItem(placement: .navigationBarTrailing) {
                 HStack(spacing: 16) {
-                    // Music toggle button
+                    // Sound toggle button (controls music and sound effects)
                     Button(action: {
-                        audioManager.toggleBackgroundMusic()
+                        audioManager.toggleSound()
                     }) {
-                        Image(systemName: audioManager.isMusicPlaying ? "speaker.wave.2.fill" : "speaker.slash.fill")
+                        Image(systemName: audioManager.isSoundEnabled ? "speaker.wave.2.fill" : "speaker.slash.fill")
                             .font(.title2)
-                            .foregroundColor(audioManager.isMusicPlaying ? .blue : .gray)
+                            .foregroundColor(audioManager.isSoundEnabled ? .blue : .gray)
+                    }
+                    
+                    // Theme toggle button
+                    Button(action: {
+                        themeManager.cycleTheme()
+                    }) {
+                        Image(systemName: themeManager.currentTheme.icon)
+                            .font(.title2)
+                            .foregroundColor(.primary)
                     }
                     
                     // Calendar button
@@ -110,6 +146,62 @@ struct MainView: View {
             CalendarView()
                 .environmentObject(game)
         }
+        .fullScreenCover(isPresented: $showOnboarding) {
+            OnboardingView(isPresented: $showOnboarding)
+        }
+        .overlay {
+            if tutorialManager.showFirstMoveHint {
+                VStack {
+                    HintOverlay(
+                        message: "👆 Swipe in any direction to move tiles",
+                        arrowDirection: .down,
+                        onDismiss: {
+                            tutorialManager.markFirstMoveSeen()
+                        }
+                    )
+                    .padding(.top, 100)
+                    Spacer()
+                }
+            }
+            
+            if tutorialManager.showUndoHint {
+                VStack {
+                    Spacer()
+                    HintOverlay(
+                        message: "↩️ You can undo up to 3 moves per game",
+                        arrowDirection: .up,
+                        onDismiss: {
+                            tutorialManager.markUndoSeen()
+                        }
+                    )
+                    .padding(.bottom, 200)
+                }
+            }
+            
+            if tutorialManager.showGridSizeHint {
+                VStack {
+                    HStack {
+                        HintOverlay(
+                            message: "🎯 Try different grid sizes!",
+                            arrowDirection: .right,
+                            onDismiss: {
+                                tutorialManager.markGridSizeSeen()
+                            }
+                        )
+                        .padding(.leading, 20)
+                        Spacer()
+                    }
+                    .padding(.top, 100)
+                    Spacer()
+                }
+            }
+        }
+        .onAppear {
+            showOnboarding = tutorialManager.shouldShowOnboarding
+            if !tutorialManager.shouldShowOnboarding {
+                tutorialManager.checkFirstMoveHint(moveCount: game.gameState.score > 0 ? 1 : 0)
+            }
+        }
         }
         
         
@@ -126,10 +218,18 @@ struct MainView: View {
                     }
                 )
             }
-            .alert("Game Over", isPresented: $game.gameState.gameOver) {
-                Button("New Game") { game.startNewGame() }
-            } message: {
-                Text("No more moves available.\nFinal score: \(game.score)\nBest score: \(game.bestScore)")
+            .sheet(isPresented: $game.gameState.gameOver) {
+                GameOverView(
+                    score: game.score,
+                    bestScore: game.bestScore,
+                    canUndo: game.canUndo,
+                    onUndo: {
+                        game.undo()
+                    },
+                    onNewGame: {
+                        game.startNewGame()
+                    }
+                )
             }
     }
 }
