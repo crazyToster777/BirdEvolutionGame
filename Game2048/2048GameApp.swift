@@ -20,7 +20,6 @@ struct newgameApp: App {
                 .environmentObject(gameViewModel)
                 .environmentObject(audioManager)
                 .environmentObject(themeManager)
-                .preferredColorScheme(themeManager.currentTheme.colorScheme)
         }
     }
 }

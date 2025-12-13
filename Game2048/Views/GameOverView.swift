@@ -27,13 +27,13 @@ struct GameOverView: View {
                 
                 // Skull icon with rotation animation
                 Text("💀")
-                    .font(.system(size: 100))
+                    .font(.system(size: 100 * DeviceInfo.fontMultiplier))
                     .rotationEffect(.degrees(skullRotation))
                 
                 // Title
-                VStack(spacing: 12) {
+                VStack(spacing: 12 * DeviceInfo.paddingMultiplier) {
                     Text("Game Over")
-                        .font(.system(size: 48, weight: .bold))
+                        .font(.system(size: 48 * DeviceInfo.fontMultiplier, weight: .bold))
                     
                     Text("No more moves available")
                         .font(.title2)
@@ -41,19 +41,16 @@ struct GameOverView: View {
                 }
                 
                 // Stats card
-                VStack(spacing: 20) {
-                    HStack(spacing: 40) {
+                VStack(spacing: 20 * DeviceInfo.paddingMultiplier) {
+                    HStack(spacing: 40 * DeviceInfo.paddingMultiplier) {
                         StatItem(icon: "star.fill", label: "Score", value: "\(score)")
                         StatItem(icon: "trophy.fill", label: "Best", value: "\(bestScore)")
                     }
                 }
-                .padding(24)
-                .background(
-                    RoundedRectangle(cornerRadius: 20)
-                        .fill(Color(.systemBackground).opacity(0.9))
-                        .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
-                )
-                .padding(.horizontal, 32)
+                .padding(24 * DeviceInfo.paddingMultiplier)
+                .background(.ultraThinMaterial)
+                .cornerRadius(20)
+                .padding(.horizontal, 32 * DeviceInfo.paddingMultiplier)
                 
                 // Action buttons
                 VStack(spacing: 16) {
@@ -68,18 +65,16 @@ struct GameOverView: View {
                                 Text("Undo Last Move")
                             }
                             .font(.title3.bold())
-                            .foregroundColor(.white)
+                            .foregroundColor(.orange)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 16)
-                            .background(
-                                LinearGradient(
-                                    colors: [Color.orange, Color.orange.opacity(0.8)],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
+                            .background(.ultraThinMaterial)
                             .cornerRadius(16)
-                            .shadow(color: .orange.opacity(0.3), radius: 10, x: 0, y: 5)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .stroke(Color.orange, lineWidth: 2)
+                            )
+                            .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
                         }
                     }
                     
@@ -93,21 +88,26 @@ struct GameOverView: View {
                             Text("New Game")
                         }
                         .font(.title3.bold())
-                        .foregroundColor(.white)
+                        .foregroundColor(.blue)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
-                        .background(
-                            LinearGradient(
-                                colors: [Color.blue, Color.purple],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
+                        .background(.ultraThinMaterial)
                         .cornerRadius(16)
-                        .shadow(color: .blue.opacity(0.3), radius: 10, x: 0, y: 5)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(
+                                    LinearGradient(
+                                        colors: [Color.blue, Color.purple],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    ),
+                                    lineWidth: 2
+                                )
+                        )
+                        .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
                     }
                 }
-                .padding(.horizontal, 32)
+                .padding(.horizontal, 32 * DeviceInfo.paddingMultiplier)
                 
                 Spacer()
             }

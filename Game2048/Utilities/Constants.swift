@@ -40,20 +40,26 @@ enum GridSize: Int, CaseIterable, Codable {
         }
     }
     
+    /// Base tile size (for iPhone), scaled by device multiplier
     var tileSize: CGFloat {
+        let baseSize: CGFloat
         switch self {
-        case .small: return 70
-        case .medium: return 56
-        case .large: return 46
+        case .small: baseSize = 70
+        case .medium: baseSize = 56
+        case .large: baseSize = 46
         }
+        return baseSize * DeviceInfo.sizeMultiplier
     }
     
+    /// Base spacing (for iPhone), scaled by device multiplier
     var spacing: CGFloat {
+        let baseSpacing: CGFloat
         switch self {
-        case .small: return 8
-        case .medium: return 6
-        case .large: return 5
+        case .small: baseSpacing = 8
+        case .medium: baseSpacing = 6
+        case .large: baseSpacing = 5
         }
+        return baseSpacing * DeviceInfo.spacingMultiplier
     }
     
     var emoji: String {

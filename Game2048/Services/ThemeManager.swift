@@ -1,54 +1,49 @@
 import SwiftUI
 
-enum AppTheme: String, CaseIterable {
-    case light = "Light"
-    case dark = "Dark"
-    case auto = "Auto"
-    
-    var icon: String {
-        switch self {
-        case .light:
-            return "sun.max.fill"
-        case .dark:
-            return "moon.fill"
-        case .auto:
-            return "circle.lefthalf.filled"
-        }
-    }
-    
-    var colorScheme: ColorScheme? {
-        switch self {
-        case .light:
-            return .light
-        case .dark:
-            return .dark
-        case .auto:
-            return nil
-        }
-    }
-}
-
 class ThemeManager: ObservableObject {
-    @Published var currentTheme: AppTheme {
+    
+    // Background Management
+    @Published var currentBackground: AppBackground {
         didSet {
-            UserDefaults.standard.set(currentTheme.rawValue, forKey: "appTheme")
+            UserDefaults.standard.set(currentBackground.rawValue, forKey: "appBackground")
         }
     }
     
     init() {
-        if let savedTheme = UserDefaults.standard.string(forKey: "appTheme"),
-           let theme = AppTheme(rawValue: savedTheme) {
-            self.currentTheme = theme
+        if let savedBg = UserDefaults.standard.string(forKey: "appBackground"),
+           let bg = AppBackground(rawValue: savedBg) {
+            self.currentBackground = bg
         } else {
-            self.currentTheme = .auto
+            self.currentBackground = .sky
         }
     }
     
-    func cycleTheme() {
-        let allThemes = AppTheme.allCases
-        if let currentIndex = allThemes.firstIndex(of: currentTheme) {
-            let nextIndex = (currentIndex + 1) % allThemes.count
-            currentTheme = allThemes[nextIndex]
+    func cycleBackground() {
+        let allBackgrounds = AppBackground.allCases
+        if let currentIndex = allBackgrounds.firstIndex(of: currentBackground) {
+            let nextIndex = (currentIndex + 1) % allBackgrounds.count
+            currentBackground = allBackgrounds[nextIndex]
+        }
+    }
+}
+
+enum AppBackground: String, CaseIterable {
+    case sky = "Sky"
+    case mountain = "Mountain"
+    case grass = "Grass"
+    
+    var color: Color {
+        return Color.clear // Always using images now
+    }
+    
+    var backgroundImageName: String? {
+        switch self {
+        case .sky:
+            return "background_sky"
+        case .mountain:
+            return "background_mountain"
+        case .grass:
+            return "background_grass"
         }
     }
 }

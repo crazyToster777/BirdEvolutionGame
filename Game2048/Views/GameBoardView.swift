@@ -40,14 +40,18 @@ struct MergeRotationGameBoardView: View {
                             shouldRotate: mergedPositions.contains(Position(row: row, col: col)),
                             isNewTile: newTilePositions.contains(Position(row: row, col: col)),
                             newTileTrigger: newTileTrigger,
-                            tileSize: tileSize
+                            tileSize: tileSize,
+                            powerUpType: game.gameState.powerUpGrid[row][col],
+                            onTap: {
+                                game.activatePowerUp(at: Position(row: row, col: col))
+                            }
                         )
                     }
                 }
             }
         }
         .padding()
-        .background(Color.gray.opacity(0.5))
+        .background(Color.clear)
         .cornerRadius(12)
         .gesture(
             DragGesture(minimumDistance: GameConstants.minimumDragDistance)

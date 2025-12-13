@@ -24,11 +24,17 @@ struct OnboardingView: View {
                 FeaturesPage()
                     .tag(2)
                 
+                PowerUpsPage()
+                    .tag(3)
+                
+                EnergyPage()
+                    .tag(4)
+                
                 ReadyPage(onStart: {
                     TutorialManager.shared.markOnboardingComplete()
                     isPresented = false
                 })
-                .tag(3)
+                .tag(5)
             }
             .tabViewStyle(.page(indexDisplayMode: .always))
             .indexViewStyle(.page(backgroundDisplayMode: .always))
@@ -36,21 +42,88 @@ struct OnboardingView: View {
     }
 }
 
+// MARK: - Energy Page
+struct EnergyPage: View {
+    var body: some View {
+        VStack(spacing: 30 * DeviceInfo.paddingMultiplier) {
+            Image(systemName: "bolt.batteryblock.fill")
+                .font(.system(size: 80 * DeviceInfo.fontMultiplier))
+                .foregroundColor(.yellow)
+                .symbolEffect(.pulse)
+            
+            Text("Survival Mode")
+                .font(.system(size: 36 * DeviceInfo.fontMultiplier, weight: .bold))
+            
+            VStack(alignment: .leading, spacing: 25 * DeviceInfo.paddingMultiplier) {
+                
+                EnergyInfoRow(
+                    icon: "figure.walk",
+                    color: .red,
+                    title: "Moves Cost Energy",
+                    description: "Every swipe drains your energy. Don't waste moves!"
+                )
+                
+                EnergyInfoRow(
+                    icon: "battery.100.bolt",
+                    color: .green,
+                    title: "Merges Restore It",
+                    description: "Merge tiles to recharge. Combos give huge bonuses."
+                )
+                
+                EnergyInfoRow(
+                    icon: "skull",
+                    color: .primary,
+                    title: "Don't Hit Zero",
+                    description: "If energy reaches 0%, it's Game Over. Stay charged!"
+                )
+            }
+            .padding(.horizontal)
+            
+            Spacer()
+        }
+        .padding()
+    }
+}
+
+struct EnergyInfoRow: View {
+    let icon: String
+    let color: Color
+    let title: String
+    let description: String
+    
+    var body: some View {
+        HStack(spacing: 16) {
+            Image(systemName: icon)
+                .font(.title)
+                .foregroundColor(color)
+                .frame(width: 40)
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.headline)
+                Text(description)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+        }
+    }
+}
+
 // MARK: - Welcome Page
 struct WelcomePage: View {
     var body: some View {
-        VStack(spacing: 30) {
+        VStack(spacing: 30 * DeviceInfo.paddingMultiplier) {
             Spacer()
             
             Text("🎮")
-                .font(.system(size: 100))
+                .font(.system(size: 100 * DeviceInfo.fontMultiplier))
             
             Text("Welcome to")
                 .font(.title2)
                 .foregroundColor(.secondary)
             
-            Text("2048 Evolution")
-                .font(.system(size: 40, weight: .bold))
+            Text("Bird Evolution")
+                .font(.system(size: 40 * DeviceInfo.fontMultiplier, weight: .bold))
                 .multilineTextAlignment(.center)
             
             Text("Merge birds to create stronger ones!")
@@ -73,11 +146,11 @@ struct WelcomePage: View {
 // MARK: - How to Play Page
 struct HowToPlayPage: View {
     var body: some View {
-        VStack(spacing: 30) {
+        VStack(spacing: 30 * DeviceInfo.paddingMultiplier) {
             Text("How to Play")
-                .font(.system(size: 36, weight: .bold))
+                .font(.system(size: 36 * DeviceInfo.fontMultiplier, weight: .bold))
             
-            VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 20 * DeviceInfo.paddingMultiplier) {
                 HowToPlayItem(
                     icon: "hand.draw",
                     title: "Swipe to Move",
@@ -92,25 +165,25 @@ struct HowToPlayPage: View {
                 
                 HowToPlayItem(
                     icon: "trophy.fill",
-                    title: "Reach 2048",
-                    description: "Keep merging to reach the 2048 tile and win!"
+                    title: "Reach the Top",
+                    description: "Keep merging to create the ultimate bird and win!"
                 )
             }
             .padding()
             
             // Tile progression
-            VStack(spacing: 12) {
+            VStack(spacing: 12 * DeviceInfo.paddingMultiplier) {
                 Text("Evolution Path")
                     .font(.headline)
                     .foregroundColor(.secondary)
                 
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
+                    HStack(spacing: 8 * DeviceInfo.spacingMultiplier) {
                         ForEach(Array(["2", "4", "8", "16", "32", "64", "128", "256", "512", "1024", "2048", "4096", "8192", "16384"].enumerated()), id: \.offset) { index, tile in
                             Image(tile)
                                 .resizable()
                                 .scaledToFit()
-                                .frame(width: 50, height: 50)
+                                .frame(width: 50 * DeviceInfo.sizeMultiplier, height: 50 * DeviceInfo.sizeMultiplier)
                                 .cornerRadius(6)
                             
                             if index < 13 {
@@ -157,11 +230,11 @@ struct HowToPlayItem: View {
 // MARK: - Features Page
 struct FeaturesPage: View {
     var body: some View {
-        VStack(spacing: 30) {
+        VStack(spacing: 30 * DeviceInfo.paddingMultiplier) {
             Text("Features")
-                .font(.system(size: 36, weight: .bold))
+                .font(.system(size: 36 * DeviceInfo.fontMultiplier, weight: .bold))
             
-            VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 20 * DeviceInfo.paddingMultiplier) {
                 FeatureItem(
                     icon: "arrow.uturn.backward.circle.fill",
                     title: "Undo Moves",
@@ -217,19 +290,124 @@ struct FeatureItem: View {
     }
 }
 
+// MARK: - Power-Ups Page
+struct PowerUpsPage: View {
+    var body: some View {
+        VStack(spacing: 30 * DeviceInfo.paddingMultiplier) {
+            Text("Power-Ups & Combos")
+                .font(.system(size: 36 * DeviceInfo.fontMultiplier, weight: .bold))
+            
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20 * DeviceInfo.paddingMultiplier) {
+                    Text("💥 Power-Ups")
+                        .font(.title2.bold())
+                        .padding(.top)
+                    
+                    PowerUpItem(
+                        emoji: "💣",
+                        title: "Bomb",
+                        description: "Clears surrounding tiles"
+                    )
+                    
+                    PowerUpItem(
+                        emoji: "🌈",
+                        title: "Rainbow",
+                        description: "Merges with any tile"
+                    )
+                    
+                    PowerUpItem(
+                        emoji: "✖️2",
+                        title: "Multiplier",
+                        description: "Doubles next merge value"
+                    )
+                    
+                    PowerUpItem(
+                        emoji: "🔀",
+                        title: "Shuffle",
+                        description: "Randomizes the board"
+                    )
+                    
+                    Divider()
+                        .padding(.vertical)
+                    
+                    Text("🔥 Combo System")
+                        .font(.title2.bold())
+                    
+                    Text("Make multiple merges in one move to earn combo bonuses and increase power-up chances!")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    
+                    HStack(spacing: 15) {
+                        ComboLevelBadge(level: "2x", color: .blue, bonus: "+50")
+                        ComboLevelBadge(level: "3x", color: .purple, bonus: "+150")
+                        ComboLevelBadge(level: "4x+", color: .orange, bonus: "+500")
+                    }
+                }
+                .padding()
+            }
+            
+            Spacer()
+        }
+        .padding()
+    }
+}
+
+struct PowerUpItem: View {
+    let emoji: String
+    let title: String
+    let description: String
+    
+    var body: some View {
+        HStack(spacing: 15) {
+            Text(emoji)
+                .font(.system(size: 40))
+                .frame(width: 50)
+            
+            VStack(alignment: .leading, spacing: 5) {
+                Text(title)
+                    .font(.headline)
+                Text(description)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+        }
+    }
+}
+
+struct ComboLevelBadge: View {
+    let level: String
+    let color: Color
+    let bonus: String
+    
+    var body: some View {
+        VStack(spacing: 4) {
+            Text(level)
+                .font(.caption.bold())
+                .foregroundColor(.white)
+            Text(bonus)
+                .font(.caption2)
+                .foregroundColor(.white.opacity(0.8))
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(color)
+        .cornerRadius(8)
+    }
+}
+
 // MARK: - Ready Page
 struct ReadyPage: View {
     let onStart: () -> Void
     
     var body: some View {
-        VStack(spacing: 40) {
+        VStack(spacing: 40 * DeviceInfo.paddingMultiplier) {
             Spacer()
             
             Text("🎉")
-                .font(.system(size: 80))
+                .font(.system(size: 80 * DeviceInfo.fontMultiplier))
             
             Text("You're Ready!")
-                .font(.system(size: 40, weight: .bold))
+                .font(.system(size: 40 * DeviceInfo.fontMultiplier, weight: .bold))
             
             Text("Time to start your evolution journey")
                 .font(.title3)
@@ -240,8 +418,8 @@ struct ReadyPage: View {
                 Text("Start Evolution")
                     .font(.title2.bold())
                     .foregroundColor(.white)
-                    .padding(.horizontal, 40)
-                    .padding(.vertical, 16)
+                    .padding(.horizontal, 40 * DeviceInfo.paddingMultiplier)
+                    .padding(.vertical, 16 * DeviceInfo.paddingMultiplier)
                     .background(
                         LinearGradient(
                             colors: [Color.blue, Color.purple],

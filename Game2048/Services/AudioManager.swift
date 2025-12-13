@@ -1,6 +1,7 @@
 import Foundation
 import AVFoundation
 import AudioToolbox
+import UIKit
 
 class AudioManager: ObservableObject {
     static let shared = AudioManager()
@@ -83,6 +84,54 @@ class AudioManager: ObservableObject {
             var soundID: SystemSoundID = 0
             AudioServicesCreateSystemSoundID(soundURL as CFURL, &soundID)
             AudioServicesPlaySystemSound(soundID)
+        }
+    }
+    
+    func playComboSound(level: Int) {
+        guard isSoundEnabled else { return }
+        
+        // Play different feeling haptics/sounds based on combo level
+        switch level {
+        case 2:
+            let generator = UIImpactFeedbackGenerator(style: .medium)
+            generator.impactOccurred()
+            // Standard system sound for positive feedback
+            AudioServicesPlaySystemSound(1057)
+            
+        case 3:
+            let generator = UIImpactFeedbackGenerator(style: .heavy)
+            generator.impactOccurred()
+            AudioServicesPlaySystemSound(1001)
+            
+        case 4...:
+            let generator = UINotificationFeedbackGenerator()
+            generator.notificationOccurred(.success)
+            AudioServicesPlaySystemSound(1025)
+            
+        default:
+            break
+        }
+    }
+    
+    func playPowerUpSound(type: PowerUpType) {
+        guard isSoundEnabled else { return }
+        
+        let generator = UINotificationFeedbackGenerator()
+        
+        switch type {
+        case .bomb:
+            generator.notificationOccurred(.warning)
+            AudioServicesPlaySystemSound(1005) // Alarm-like
+        case .rainbow:
+            generator.notificationOccurred(.success)
+            AudioServicesPlaySystemSound(1106)
+        case .multiplier:
+            generator.notificationOccurred(.success)
+            AudioServicesPlaySystemSound(1103)
+        case .shuffle:
+            let impact = UIImpactFeedbackGenerator(style: .heavy)
+            impact.impactOccurred()
+            AudioServicesPlaySystemSound(1104)
         }
     }
     

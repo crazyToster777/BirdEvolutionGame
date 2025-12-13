@@ -7,15 +7,23 @@ class Game2048ViewModel: ObservableObject {
     @Published var bestScore: Int = 0
     @Published var dayStats: [String: DayStats] = [:]
     @Published var gridSize: GridSize
+    
+    // Combo and Power-up System
+    @Published var comboCount: Int = 0
+    @Published var comboBonus: Int = 0
+    @Published var showComboBanner: Bool = false
+    @Published var activePowerUpPositions: Set<Position> = []
 
     private var gameModel: Game2048Model
     private let persistenceManager = GamePersistenceManager()
+    private var comboSystem = ComboSystem()
     private var currentSessionMoves: Int = 0
     private var currentSessionStartTime: Date = Date()
     private var gameStateHistory: [GameState] = []
     private let maxHistorySize = GameConstants.maxUndos
     private var hasUsedUndo: Bool = false
     private var gamesCompleted: Int = 0
+    private var gameTimer: Timer?
 
     var grid: [[Int]] { gameState.grid }
     var score: Int { gameState.score }
@@ -49,6 +57,17 @@ class Game2048ViewModel: ObservableObject {
         // Reset undo state
         gameStateHistory.removeAll()
         gameState.undosRemaining = GameConstants.maxUndos
+        
+        // Reset combo and power-up state
+        comboSystem.reset()
+        updateComboUI()
+        activePowerUpPositions.removeAll()
+        
+        // Reset Energy
+        gameState.energy = EnergyConfig.startingEnergy
+        gameState.maxEnergy = EnergyConfig.maxEnergy
+        
+        startEnergyDecay()
     }
 
     func move(_ direction: Direction) -> (mergedPositions: Set<Position>, newTilePositions: Set<Position>) {
@@ -62,20 +81,80 @@ class Game2048ViewModel: ObservableObject {
             if !gameStateHistory.isEmpty {
                 gameStateHistory.removeLast()
             }
-            return ([], []) // НЕТ изменений - НЕТ слияний
+            // Reset combo on failed move
+            comboSystem.reset()
+            updateComboUI()
+            return ([], [])
         }
 
         currentSessionMoves += 1
+        
+        // Count merges for combo system
+        let mergeCount = moveResult.mergedPositions.count
+        comboSystem.updateCombo(mergeCount: mergeCount)
+        
+        // Play combo sound if applicable
+        if comboSystem.currentCombo >= 2 {
+            AudioManager.shared.playComboSound(level: comboSystem.currentCombo)
+        }
+        
+        // Apply combo bonus to score
+        var totalScore = moveResult.scoreGained + comboSystem.comboBonus
+        
+        // Apply multiplier if active
+        if gameState.activeMultiplier {
+            totalScore = PowerUpEffects.applyMultiplier(to: totalScore)
+            gameState.activeMultiplier = false
+        }
+        
+        // Update Energy Logic
+        // 1. Consume move cost
+        gameState.energy -= EnergyConfig.moveCost
+        
+        // 2. Restore energy from merges
+        // 2. Restore energy from merges
+        if mergeCount > 0 {
+            let flatRestore = Double(mergeCount) * EnergyConfig.mergeRestoration
+            let scoreRestore = Double(moveResult.scoreGained) * EnergyConfig.energyPerScorePoint
+            
+            let totalRestore = flatRestore + scoreRestore
+            
+            // Bonus for combos
+            let comboMultiplier = comboSystem.currentCombo > 1 ? EnergyConfig.comboBonusMultiplier : 1.0
+            gameState.energy += totalRestore * comboMultiplier
+        }
+        
+        // 3. Cap at max energy
+        gameState.energy = min(gameState.energy, gameState.maxEnergy)
+        
         gameState.grid = moveResult.newGrid
-        gameState.score += moveResult.scoreGained
+        gameState.score += totalScore
         gameState.maxTileValue = gameState.calculatedMaxTileValue
+        
+        // Check for Energy Depletion Game Over
+        // Check for Energy Depletion Game Over
+        if gameState.energy <= 0 {
+            gameState.energy = 0
+            gameState.gameOver = true
+            stopEnergyDecay()
+            AudioManager.shared.playPowerUpSound(type: .bomb) // Reuse sound or add game over sound
+        }
 
         if moveResult.hasWon && !gameState.hasWon {
             gameState.hasWon = true
         }
 
+        // Add new tile with possible power-up
         let addTileResult = gameModel.addRandomTile(to: gameState)
         gameState = addTileResult.gameState
+        
+        // Generate power-up based on combo
+        if let newTilePosition = addTileResult.newTilePosition {
+            if let powerUpType = PowerUpEffects.generatePowerUp(spawnRate: comboSystem.powerUpSpawnRate) {
+                gameState.powerUpGrid[newTilePosition.row][newTilePosition.col] = powerUpType
+                activePowerUpPositions.insert(newTilePosition)
+            }
+        }
 
         var newTilePositions: Set<Position> = []
         if let newTilePosition = addTileResult.newTilePosition {
@@ -84,6 +163,7 @@ class Game2048ViewModel: ObservableObject {
 
         if gameModel.checkGameOver(for: gameState) {
             gameState.gameOver = true
+            stopEnergyDecay()
             updateBestScore()
             recordGameSession()
             gamesCompleted += 1
@@ -93,7 +173,28 @@ class Game2048ViewModel: ObservableObject {
         // Check for undo hint
         TutorialManager.shared.checkUndoHint(moveCount: currentSessionMoves, hasUsedUndo: hasUsedUndo)
         
+        // Update combo UI
+        updateComboUI()
+        
         return (moveResult.mergedPositions, newTilePositions)
+    }
+    
+    // MARK: - Combo System
+    
+    private func updateComboUI() {
+        comboCount = comboSystem.currentCombo
+        comboBonus = comboSystem.comboBonus
+        
+        // Show combo banner for 2x and above
+        if comboCount >= 2 {
+            showComboBanner = true
+            // Auto-hide after 2 seconds
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                self.showComboBanner = false
+            }
+        } else {
+            showComboBanner = false
+        }
     }
 
     func resetGame() {
@@ -142,13 +243,165 @@ class Game2048ViewModel: ObservableObject {
             persistenceManager.saveBestScore(bestScore, for: gridSize.rawValue)
         }
     }
+    
+    // MARK: - Power-Up Activation
+    
+    func activatePowerUp(at position: Position) {
+        guard let powerUpType = gameState.powerUpGrid[position.row][position.col] else {
+            return
+        }
+        
+        // Play sound effect
+        AudioManager.shared.playPowerUpSound(type: powerUpType)
+        
+        switch powerUpType {
+        case .bomb:
+            activateBomb(at: position)
+        case .rainbow:
+            activateRainbow(at: position)
+        case .multiplier:
+            activateMultiplier()
+        case .shuffle:
+            activateShuffle()
+        }
+        
+        // Remove power-up after activation
+        gameState.powerUpGrid[position.row][position.col] = nil
+        activePowerUpPositions.remove(position)
+    }
+    
+    private func activateBomb(at position: Position) {
+        let result = PowerUpEffects.activateBomb(at: position, grid: &gameState.grid, gridSize: gameState.gridSize)
+        gameState.score += result.pointsEarned
+        
+        // Restore Energy from Bomb
+        // Restore Energy from Bomb
+        if result.pointsEarned > 0 {
+            // Base energy from score
+            let baseEnergy = Double(result.pointsEarned) * EnergyConfig.energyPerScorePoint
+            
+            // Bomb acts as a mega-charger: 3x efficiency + flat bonus
+            let bombMultiplier = 3.0
+            let flatBonus = 10.0 // Guaranteed chunk of energy
+            
+            let totalBombEnergy = (baseEnergy * bombMultiplier) + flatBonus
+            
+            gameState.energy += totalBombEnergy
+            gameState.energy = min(gameState.energy, gameState.maxEnergy)
+        }
+        
+        gameState.maxTileValue = gameState.calculatedMaxTileValue
+    }
+    
+    private func activateRainbow(at position: Position) {
+        if let targetPosition = PowerUpEffects.activateRainbow(at: position, grid: &gameState.grid, gridSize: gameState.gridSize) {
+            // Merge rainbow tile with target
+            // Rainbow behaves like a Joker: it mimics the target tile to upgrade it
+            let targetValue = gameState.grid[targetPosition.row][targetPosition.col]
+            let mergedValue = targetValue * 2
+            
+            gameState.grid[targetPosition.row][targetPosition.col] = mergedValue
+            gameState.grid[position.row][position.col] = 0
+            gameState.score += mergedValue
+            gameState.maxTileValue = gameState.calculatedMaxTileValue
+        }
+    }
+    
+    private func activateMultiplier() {
+        // Set flag for next merge to be doubled
+        gameState.activeMultiplier = true
+    }
+    
+    private func activateShuffle() {
+        // Fix for "Inout writeback" error: copy properties to local vars
+        var grid = gameState.grid
+        var powerUpGrid = gameState.powerUpGrid
+        
+        // Pass local copies
+        PowerUpEffects.activateShuffle(grid: &grid, powerUpGrid: &powerUpGrid, gridSize: gameState.gridSize)
+        
+        // Assign back to gameState
+        gameState.grid = grid
+        gameState.powerUpGrid = powerUpGrid
+        
+        // Rebuild active positions cache because tiles moved
+        activePowerUpPositions.removeAll()
+        for r in 0..<gameState.gridSize {
+            for c in 0..<gameState.gridSize {
+                if gameState.powerUpGrid[r][c] != nil {
+                    activePowerUpPositions.insert(Position(row: r, col: c))
+                }
+            }
+        }
+        
+        gameState.maxTileValue = gameState.calculatedMaxTileValue
+    }
+    
+    // MARK: - Time Attack Logic
+    
+    private func startEnergyDecay() {
+        stopEnergyDecay() // Ensure previous timer is invalidated
+        
+        gameTimer = Timer.scheduledTimer(withTimeInterval: EnergyConfig.decayInterval, repeats: true) { [weak self] _ in
+            guard let self = self else { return }
+            guard !self.gameState.gameOver && !self.gameState.hasWon else {
+                self.stopEnergyDecay()
+                return
+            }
+            
+            // Apply decay based on elapsed time (interval * rate)
+            let decayAmount = EnergyConfig.decayInterval * EnergyConfig.timeDecayRate
+            self.gameState.energy -= decayAmount
+            
+            // Check for game over
+            if self.gameState.energy <= 0 {
+                self.gameState.energy = 0
+                self.gameState.gameOver = true
+                self.stopEnergyDecay()
+                AudioManager.shared.playPowerUpSound(type: .bomb)
+            }
+        }
+    }
+    
+    private func stopEnergyDecay() {
+        gameTimer?.invalidate()
+        gameTimer = nil
+    }
+    
+    // MARK: - App Lifecycle Management
+    
+    func pauseGame() {
+        stopEnergyDecay()
+    }
+    
+    func resumeGame() {
+        if !gameState.gameOver && !gameState.hasWon {
+            startEnergyDecay()
+        }
+    }
 
     // MARK: - Debug/Test Functions
     #if DEBUG
     func fillAllCellsRandom() {
+        // Clear existing powerups first to avoid stale state
+        for r in 0..<gameState.gridSize {
+            for c in 0..<gameState.gridSize {
+                gameState.powerUpGrid[r][c] = nil
+            }
+        }
+        activePowerUpPositions.removeAll()
+
         for row in 0..<gameState.gridSize {
             for col in 0..<gameState.gridSize {
                 gameState.grid[row][col] = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024].randomElement() ?? 2
+                
+                // Add random power-up (20% chance for debug)
+                if Double.random(in: 0...1) < 0.2 {
+                    if let type = PowerUpType.allCases.randomElement() {
+                        gameState.powerUpGrid[row][col] = type
+                        activePowerUpPositions.insert(Position(row: row, col: col))
+                    }
+                }
             }
         }
         gameState.maxTileValue = gameState.calculatedMaxTileValue

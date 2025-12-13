@@ -11,6 +11,8 @@ struct TileView: View {
     let isNewTile: Bool
     let newTileTrigger: Int
     let tileSize: CGFloat
+    let powerUpType: PowerUpType?  // Power-up indicator
+    let onTap: () -> Void  // Tap handler
     
     @State private var rotationX: Double = 0
     @State private var rotationY: Double = 0
@@ -19,7 +21,7 @@ struct TileView: View {
     @State private var scale: Double = 1.0
     @State private var lastNewTileTrigger: Int = 0
     
-    init(value: Int, position: Position, rotationTrigger: Int, rotationDirection: MergeRotationGameBoardView.RotationDirection, shouldRotate: Bool, isNewTile: Bool, newTileTrigger: Int, tileSize: CGFloat = 70) {
+    init(value: Int, position: Position, rotationTrigger: Int, rotationDirection: MergeRotationGameBoardView.RotationDirection, shouldRotate: Bool, isNewTile: Bool, newTileTrigger: Int, tileSize: CGFloat = 70, powerUpType: PowerUpType? = nil, onTap: @escaping () -> Void = {}) {
         self.value = value
         self.position = position
         self.rotationTrigger = rotationTrigger
@@ -28,6 +30,8 @@ struct TileView: View {
         self.isNewTile = isNewTile
         self.newTileTrigger = newTileTrigger
         self.tileSize = tileSize
+        self.powerUpType = powerUpType
+        self.onTap = onTap
         
         _scale = State(initialValue: isNewTile ? 0.1 : 1.0)
     }
@@ -40,14 +44,20 @@ struct TileView: View {
             
             
             if value > 0 {
-                Image("\(value)") // loads the image set named "2"
-                    .resizable()                // make it resizable
-                    .scaledToFit()              // preserve aspect ratio
+                Image(getTileImg(for: value))
+                    .resizable()
+                    .scaledToFit()
                     .frame(width: tileSize, height: tileSize)
                     .clipped()
                     .cornerRadius(8)
             }
+            
+            // Power-up indicator overlay (unchanged)
+            if powerUpType != nil {
+                PowerUpIndicatorView(powerUpType: powerUpType, tileSize: tileSize)
+            }
         }
+        .frame(width: tileSize, height: tileSize) // Prevent glow from expanding the tile layout
         .scaleEffect(scale)
         .rotation3DEffect(.degrees(rotationX), axis: (1,0,0))
         .rotation3DEffect(.degrees(rotationY), axis: (0,1,0))
@@ -68,6 +78,9 @@ struct TileView: View {
                 performNewTileAnimation()
                 lastNewTileTrigger = newValue
             }
+        }
+        .onTapGesture {
+            onTap()
         }
     }
     
@@ -111,6 +124,10 @@ struct TileView: View {
         case 32: return "32"
         case 64: return "64"
         case 128: return "128"
+        case 256: return "256"
+        case 512: return "512"
+        case 1024: return "1024"
+        case 2048: return "2048"
         default: return "2"
         }
     }
@@ -157,3 +174,5 @@ struct TileView: View {
         }
     }
 }
+
+

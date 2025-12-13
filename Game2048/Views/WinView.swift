@@ -25,13 +25,13 @@ struct WinView: View {
                 
                 // Crown icon with rotation
                 Text("👑")
-                    .font(.system(size: 100))
+                    .font(.system(size: 100 * DeviceInfo.fontMultiplier))
                     .rotationEffect(.degrees(crownRotation))
                 
                 // Title
-                VStack(spacing: 12) {
+                VStack(spacing: 12 * DeviceInfo.paddingMultiplier) {
                     Text("Victory!")
-                        .font(.system(size: 48, weight: .bold))
+                        .font(.system(size: 48 * DeviceInfo.fontMultiplier, weight: .bold))
                     
                     Text("You reached \(maxTile)!")
                         .font(.title2)
@@ -39,19 +39,16 @@ struct WinView: View {
                 }
                 
                 // Stats card
-                VStack(spacing: 20) {
-                    HStack(spacing: 40) {
+                VStack(spacing: 20 * DeviceInfo.paddingMultiplier) {
+                    HStack(spacing: 40 * DeviceInfo.paddingMultiplier) {
                         StatItem(icon: "star.fill", label: "Score", value: "\(score)")
                         StatItem(icon: "crown.fill", label: "Max Tile", value: "\(maxTile)")
                     }
                 }
-                .padding(24)
-                .background(
-                    RoundedRectangle(cornerRadius: 20)
-                        .fill(Color(.systemBackground).opacity(0.9))
-                        .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
-                )
-                .padding(.horizontal, 32)
+                .padding(24 * DeviceInfo.paddingMultiplier)
+                .background(.ultraThinMaterial)
+                .cornerRadius(20)
+                .padding(.horizontal, 32 * DeviceInfo.paddingMultiplier)
                 
                 // Action buttons
                 VStack(spacing: 16) {
@@ -64,18 +61,16 @@ struct WinView: View {
                             Text("Continue Playing")
                         }
                         .font(.title3.bold())
-                        .foregroundColor(.white)
+                        .foregroundColor(.green)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
-                        .background(
-                            LinearGradient(
-                                colors: [Color.green, Color.green.opacity(0.8)],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
+                        .background(.ultraThinMaterial)
                         .cornerRadius(16)
-                        .shadow(color: .green.opacity(0.3), radius: 10, x: 0, y: 5)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(Color.green, lineWidth: 2)
+                        )
+                        .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
                     }
                     
                     Button(action: {
@@ -87,21 +82,26 @@ struct WinView: View {
                             Text("New Game")
                         }
                         .font(.title3.bold())
-                        .foregroundColor(.white)
+                        .foregroundColor(.blue)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
-                        .background(
-                            LinearGradient(
-                                colors: [Color.blue, Color.purple],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
+                        .background(.ultraThinMaterial)
                         .cornerRadius(16)
-                        .shadow(color: .blue.opacity(0.3), radius: 10, x: 0, y: 5)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(
+                                    LinearGradient(
+                                        colors: [Color.blue, Color.purple],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    ),
+                                    lineWidth: 2
+                                )
+                        )
+                        .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
                     }
                 }
-                .padding(.horizontal, 32)
+                .padding(.horizontal, 32 * DeviceInfo.paddingMultiplier)
                 
                 Spacer()
             }
