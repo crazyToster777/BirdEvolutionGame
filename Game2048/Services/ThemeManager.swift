@@ -28,12 +28,16 @@ class ThemeManager: ObservableObject {
 }
 
 enum AppBackground: String, CaseIterable {
+    
     case sky = "Sky"
     case mountain = "Mountain"
     case grass = "Grass"
     
     var color: Color {
-        return Color.clear // Always using images now
+        switch self {
+        case .sky, .mountain, .grass:
+            return Color.clear // Image takes precedence
+        }
     }
     
     var backgroundImageName: String? {

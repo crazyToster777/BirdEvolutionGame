@@ -391,17 +391,13 @@ class Game2048ViewModel: ObservableObject {
         }
         activePowerUpPositions.removeAll()
 
+        let tiles = [16384, 8192, 4096, 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2]
+        var index = 0
+        
         for row in 0..<gameState.gridSize {
             for col in 0..<gameState.gridSize {
-                gameState.grid[row][col] = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024].randomElement() ?? 2
-                
-                // Add random power-up (20% chance for debug)
-                if Double.random(in: 0...1) < 0.2 {
-                    if let type = PowerUpType.allCases.randomElement() {
-                        gameState.powerUpGrid[row][col] = type
-                        activePowerUpPositions.insert(Position(row: row, col: col))
-                    }
-                }
+                gameState.grid[row][col] = tiles[index % tiles.count]
+                index += 1
             }
         }
         gameState.maxTileValue = gameState.calculatedMaxTileValue

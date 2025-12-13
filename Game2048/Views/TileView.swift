@@ -128,6 +128,9 @@ struct TileView: View {
         case 512: return "512"
         case 1024: return "1024"
         case 2048: return "2048"
+        case 4096: return "4096"
+        case 8192: return "8192"
+        case 16384: return "16384"
         default: return "2"
         }
     }

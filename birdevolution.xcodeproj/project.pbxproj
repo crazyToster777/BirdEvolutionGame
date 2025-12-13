@@ -85,7 +85,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 3BF2B4E72E1759A20078833F /* Build configuration list for PBXProject "Game2048" */;
+			buildConfigurationList = 3BF2B4E72E1759A20078833F /* Build configuration list for PBXProject "birdevolution" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -319,7 +319,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		3BF2B4E72E1759A20078833F /* Build configuration list for PBXProject "Game2048" */ = {
+		3BF2B4E72E1759A20078833F /* Build configuration list for PBXProject "birdevolution" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				3BF2B4F52E1759A30078833F /* Debug */,

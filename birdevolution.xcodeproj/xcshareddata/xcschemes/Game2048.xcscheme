@@ -18,7 +18,7 @@
                BlueprintIdentifier = "3BF2B4EB2E1759A20078833F"
                BuildableName = "2048 Classic Number Puzzle.app"
                BlueprintName = "2048 Classic Number Puzzle"
-               ReferencedContainer = "container:Game2048.xcodeproj">
+               ReferencedContainer = "container:birdevolution.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -47,7 +47,7 @@
             BlueprintIdentifier = "3BF2B4EB2E1759A20078833F"
             BuildableName = "2048 Classic Number Puzzle.app"
             BlueprintName = "2048 Classic Number Puzzle"
-            ReferencedContainer = "container:Game2048.xcodeproj">
+            ReferencedContainer = "container:birdevolution.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -64,7 +64,7 @@
             BlueprintIdentifier = "3BF2B4EB2E1759A20078833F"
             BuildableName = "2048 Classic Number Puzzle.app"
             BlueprintName = "2048 Classic Number Puzzle"
-            ReferencedContainer = "container:Game2048.xcodeproj">
+            ReferencedContainer = "container:birdevolution.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>
