@@ -30,7 +30,7 @@ class BirdEvolutionGameViewModel: ObservableObject {
     var gameOver: Bool { gameState.gameOver }
     var hasWon: Bool { gameState.hasWon }
     var maxTileValue: Int { gameState.maxTileValue }
-    var canUndo: Bool { !gameStateHistory.isEmpty && gameState.undosRemaining > 0 && !gameState.gameOver }
+    var canUndo: Bool {  gameState.undosRemaining > 0 }
 
     init() {
         // Use a local variable for gridSize's initial value
@@ -44,6 +44,10 @@ class BirdEvolutionGameViewModel: ObservableObject {
         startNewGame()
     }
 
+    func grantUndo() {
+        gameState.undosRemaining = GameConstants.maxUndos
+    }
+    
     func startNewGame() {
         if gameState.score > 0 || currentSessionMoves > 0 {
             recordGameSession()

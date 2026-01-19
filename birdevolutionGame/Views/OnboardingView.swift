@@ -3,6 +3,7 @@ import SwiftUI
 struct OnboardingView: View {
     @Binding var isPresented: Bool
     @State private var currentPage = 0
+    @EnvironmentObject var game: BirdEvolutionGameViewModel
     
     var body: some View {
         ZStack {
@@ -33,6 +34,7 @@ struct OnboardingView: View {
                 ReadyPage(onStart: {
                     TutorialManager.shared.markOnboardingComplete()
                     isPresented = false
+                    game.startNewGame()
                 })
                 .tag(5)
             }

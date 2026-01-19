@@ -33,7 +33,7 @@ struct MainView: View {
                                 game.startNewGame()
                             }
                         }
-                        .padding(.bottom, 32)
+                        .padding(.bottom, 16)
                         
                         // Small gap before header
                         
@@ -61,58 +61,18 @@ struct MainView: View {
                         }
                     }
                     
-                    // Undo Button
-                    Button(action: {
-                        withAnimation {
-                            game.undo()
-                        }
-                    }) {
-                        HStack(spacing: 8) {
-                            Image(systemName: "arrow.uturn.backward.circle.fill")
-                                .font(.title3)
-                            Text("Undo")
-                                .fontWeight(.semibold)
-                            Spacer()
-                            Text("\(game.gameState.undosRemaining)/\(GameConstants.maxUndos)")
-                                .font(.caption)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(game.canUndo ? Color.blue.opacity(0.2) : Color.gray.opacity(0.2))
-                                .cornerRadius(6)
-                        }
-                        .padding()
-                        .frame(maxWidth: .infinity)
-                        .background(.ultraThinMaterial)
-                        .cornerRadius(12)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(
-                                    LinearGradient(
-                                        colors: [Color.blue.opacity(0.6), Color.blue.opacity(0.3)],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    ),
-                                    lineWidth: 1.5
-                                )
-                        )
-                        .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
-                    }
-                    .disabled(!game.canUndo)
-                    .opacity(game.canUndo ? 1.0 : 0.6)
-                    .padding(.horizontal, 80 * DeviceInfo.paddingMultiplier)
-                    
-                    Text("Merge two of the same birds to create a stronger one.")
-                        .font(.caption)
-                        .fontWeight(.medium)
-                        .foregroundColor(.primary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                        .background(.ultraThinMaterial)
-                        .cornerRadius(20)
-                        .padding(.top, 8)
+                    UndoArea(game: game)
                     HowToPlayView()
+                    BannerAdView()
+                        .frame(height: 50)
+                        .padding(.horizontal, 16)
+                        .safeAreaInset(edge: .leading) {
+                            Color.clear.frame(width: 0)
+                        }
+                       
+                        
+                        
+                    
                     
                     Spacer(minLength: 0) // Push everything to the top
                 }
@@ -129,7 +89,7 @@ struct MainView: View {
                                 .font(.caption.bold())
                         }
                         .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
+                        .padding(.vertical, 4)
                         .background(.ultraThinMaterial)
                         .cornerRadius(12)
                     }
@@ -155,9 +115,12 @@ struct MainView: View {
                             Image(systemName: "ladybug.fill")
                                 .font(.body)
                                 .foregroundColor(.red)
-                                .frame(width: 36, height: 36)
+                                .frame(width: 10, height: 10)
                                 .background(.ultraThinMaterial)
                                 .clipShape(Circle())
+                                
+                                    .opacity(0.01)               // 👈 invisible to the eye
+                                    .contentShape(Rectangle())
                         }
                         #endif
 

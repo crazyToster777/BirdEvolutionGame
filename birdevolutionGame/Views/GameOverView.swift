@@ -54,29 +54,6 @@ struct GameOverView: View {
                 
                 // Action buttons
                 VStack(spacing: 16) {
-                    // Undo button (only if available)
-                    if canUndo {
-                        Button(action: {
-                            dismiss()
-                            onUndo()
-                        }) {
-                            HStack {
-                                Image(systemName: "arrow.uturn.backward.circle.fill")
-                                Text("Undo Last Move")
-                            }
-                            .font(.title3.bold())
-                            .foregroundColor(.orange)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                            .background(.ultraThinMaterial)
-                            .cornerRadius(16)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 16)
-                                    .stroke(Color.orange, lineWidth: 2)
-                            )
-                            .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
-                        }
-                    }
                     
                     // New Game button
                     Button(action: {
