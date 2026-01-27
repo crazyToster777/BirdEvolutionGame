@@ -10,6 +10,7 @@ struct MainView: View {
     @State private var showingCalendar = false
     @State private var showingGridSelector = false
     @State private var showOnboarding = false
+    @State private var boardWidth: CGFloat = 0
 
     
     var body: some View {
@@ -33,7 +34,7 @@ struct MainView: View {
                                 game.startNewGame()
                             }
                         }
-                        .padding(.bottom, 16)
+                        .padding( 16 * DeviceInfo.paddingMultiplier )
                         
                         // Small gap before header
                         
@@ -42,11 +43,18 @@ struct MainView: View {
                             maxEnergy: game.gameState.maxEnergy,
                             bestScore: game.bestScore
                         )
+                        .frame(maxWidth: boardWidth > 0 ? boardWidth : 320 * DeviceInfo.paddingMultiplier)
                     }
-                    .padding(.horizontal, 80 * DeviceInfo.paddingMultiplier)
+                    .padding(.horizontal, 8 * DeviceInfo.paddingMultiplier)
                     
                     ZStack(alignment: .top) {
                         MergeRotationGameBoardView(game: game)
+                            .background(
+                                GeometryReader { proxy in
+                                    Color.clear
+                                        .preference(key: BoardWidthPreferenceKey.self, value: proxy.size.width)
+                                }
+                            )
                         
                         // Combo Counter Overlay
                         if game.showComboBanner {
@@ -60,23 +68,18 @@ struct MainView: View {
                             .zIndex(10)
                         }
                     }
+                    .onPreferenceChange(BoardWidthPreferenceKey.self) { width in
+                        boardWidth = width
+                    }
                     
                     UndoArea(game: game)
-                    HowToPlayView()
+                    HowToPlayView(tileSize: game.gridSize.tileSize)
                     BannerAdView()
-                        .frame(height: 50)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 60)
                         .padding(.horizontal, 16)
-                        .safeAreaInset(edge: .leading) {
-                            Color.clear.frame(width: 0)
-                        }
-                       
                         
-                        
-                    
-                    
-                    Spacer(minLength: 0) // Push everything to the top
                 }
-                .padding(8 * DeviceInfo.paddingMultiplier)
             }
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -173,6 +176,7 @@ struct MainView: View {
                     }
                 }
         }
+
         .sheet(isPresented: $showingGridSelector) {
             GridSizeSelector(currentSize: game.gridSize)
                 .environmentObject(game)
@@ -238,6 +242,7 @@ struct MainView: View {
             }
         }
         }
+        
         .navigationViewStyle(.stack)
         .onChange(of: scenePhase) { newPhase in
             switch newPhase {
@@ -280,6 +285,14 @@ struct MainView: View {
                 )
             }
 
+    }
+}
+
+private struct BoardWidthPreferenceKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
     }
 }
 

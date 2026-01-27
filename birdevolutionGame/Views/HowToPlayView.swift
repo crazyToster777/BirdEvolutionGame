@@ -8,6 +8,8 @@
 import SwiftUI
 
 struct HowToPlayView: View {
+    let tileSize: CGFloat
+    
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
@@ -15,8 +17,9 @@ struct HowToPlayView: View {
                     Image(tile)
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 50, height: 50)
-                        .cornerRadius(6)
+                        .frame(width: tileSize, height: tileSize)
+                        .cornerRadius(tileSize * 0.12) // масштабируем аккуратно
+
                     
                     if index < 13 {
                         Image(systemName: "arrow.right")
@@ -30,8 +33,8 @@ struct HowToPlayView: View {
     }
 }
 
-#Preview {
-    HowToPlayView()
-        .padding()
-        .background(Color(.systemGroupedBackground))
-}
+//#Preview {
+//    HowToPlayView()
+//        .padding()
+//        .background(Color(.systemGroupedBackground))
+//}

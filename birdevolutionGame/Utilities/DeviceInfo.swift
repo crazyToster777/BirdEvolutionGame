@@ -16,7 +16,7 @@ enum DeviceInfo {
     /// Size multiplier based on device type
     /// iPad: 1.5x, iPhone: 1.0x
     static var sizeMultiplier: CGFloat {
-        isIPad ? 1.5 : 1.0
+        isIPad ? 2 : 1.0
     }
     
     /// Spacing multiplier based on device type
@@ -28,12 +28,12 @@ enum DeviceInfo {
     /// Padding multiplier for UI elements
     /// iPad: 1.5x, iPhone: 1.0x
     static var paddingMultiplier: CGFloat {
-        isIPad ? 1.5 : 1.0
+        isIPad ? 2 : 1.0
     }
     
     /// Font size multiplier
     /// iPad: 1.2x, iPhone: 1.0x
     static var fontMultiplier: CGFloat {
-        isIPad ? 1.2 : 1.0
+        isIPad ? 1.4 : 1.0
     }
 }

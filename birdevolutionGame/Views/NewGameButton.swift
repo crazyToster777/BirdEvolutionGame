@@ -14,7 +14,7 @@ struct NewGameButton: View {
                 action()
             }
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, 32 * DeviceInfo.paddingMultiplier )
         .padding(.vertical, 12)
         .background(.ultraThinMaterial)
         .foregroundColor(.primary)

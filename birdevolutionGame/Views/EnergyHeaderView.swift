@@ -91,6 +91,7 @@ struct EnergyHeaderView: View {
             .frame(height: 6)
             .padding(.horizontal, 16)
             .padding(.bottom, 12)
+            
         }
     }
 }
