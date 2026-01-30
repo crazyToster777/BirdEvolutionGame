@@ -6,7 +6,7 @@ final class RewardedAdManager: NSObject {
     static let shared = RewardedAdManager()
     private var rewardedAd: RewardedAd?
 
-    private let adUnitID = "ca-app-pub-3940256099942544/1712485313" // TEST rewarded
+    private let adUnitID = "ca-app-pub-2241716040388986/2293506596" // TEST rewarded
 
     func load() {
         RewardedAd.load(

@@ -1,4 +1,3 @@
-
 import SwiftUI
 
 struct MainView: View {
@@ -55,6 +54,11 @@ struct MainView: View {
                                         .preference(key: BoardWidthPreferenceKey.self, value: proxy.size.width)
                                 }
                             )
+                            .anchorPreference(
+                                key: BoardAnchorKey.self,
+                                value: .bounds,
+                                transform: { $0 }
+                            )
                         
                         // Combo Counter Overlay
                         if game.showComboBanner {
@@ -73,13 +77,22 @@ struct MainView: View {
                     }
                     
                     UndoArea(game: game)
+                        .anchorPreference(
+                                key: UndoAreaAnchorKey.self,
+                                value: .bounds,
+                                transform: { $0 }
+                            )
                     HowToPlayView(tileSize: game.gridSize.tileSize)
+                    let bannerSize = DeviceInfo.isIPad
+                        ? CGSize(width: 728, height: 90)
+                        : CGSize(width: 320, height: 50)
+                    
                     BannerAdView()
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 60)
-                        .padding(.horizontal, 16)
+                        .frame(width: bannerSize.width, height: bannerSize.height)
+                        .padding(.bottom, 16)
                         
                 }
+                
             }
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -95,6 +108,12 @@ struct MainView: View {
                         .padding(.vertical, 4)
                         .background(.ultraThinMaterial)
                         .cornerRadius(12)
+                        .background(
+                            GeometryReader { proxy in
+                                Color.clear
+                                    .preference(key: GridSizeButtonFrameKey.self, value: proxy.frame(in: .global))
+                            }
+                        )
                     }
                 }
                 
@@ -189,8 +208,14 @@ struct MainView: View {
             OnboardingView(isPresented: $showOnboarding)
         }
         .overlay {
-            if tutorialManager.showFirstMoveHint {
-                VStack {
+            // Base overlay layer. Hint overlays are attached below via preference keys.
+            EmptyView()
+        }
+        .overlayPreferenceValue(BoardAnchorKey.self) { boardAnchor in
+            GeometryReader { geo in
+                if tutorialManager.showFirstMoveHint, let boardAnchor {
+                    let rect = geo[boardAnchor]
+
                     HintOverlay(
                         message: "👆 Swipe in any direction to move tiles",
                         arrowDirection: .down,
@@ -198,14 +223,16 @@ struct MainView: View {
                             tutorialManager.markFirstMoveSeen()
                         }
                     )
-                    .padding(.top, 100)
-                    Spacer()
+                    // Place above the board; arrow points down to the board.
+                    .position(x: rect.midX, y: rect.minY - 18)
                 }
             }
-            
-            if tutorialManager.showUndoHint {
-                VStack {
-                    Spacer()
+        }
+        .overlayPreferenceValue(UndoAreaAnchorKey.self) { undoAnchor in
+            GeometryReader { geo in
+                if tutorialManager.showUndoHint, let undoAnchor {
+                    let rect = geo[undoAnchor]
+
                     HintOverlay(
                         message: "↩️ You can undo up to 3 moves per game",
                         arrowDirection: .up,
@@ -213,25 +240,28 @@ struct MainView: View {
                             tutorialManager.markUndoSeen()
                         }
                     )
-                    .padding(.bottom, 200)
+                    // Place above UndoArea.
+                    .position(x: rect.midX, y: rect.minY - 16)
                 }
             }
-            
-            if tutorialManager.showGridSizeHint {
-                VStack {
-                    HStack {
-                        HintOverlay(
-                            message: "🎯 Try different grid sizes!",
-                            arrowDirection: .right,
-                            onDismiss: {
-                                tutorialManager.markGridSizeSeen()
-                            }
-                        )
-                        .padding(.leading, 20)
-                        Spacer()
-                    }
-                    .padding(.top, 100)
-                    Spacer()
+        }
+        .overlayPreferenceValue(GridSizeButtonFrameKey.self) { buttonRectGlobal in
+            GeometryReader { geo in
+                if tutorialManager.showGridSizeHint {
+                    // Convert the toolbar button global rect into this view's local coordinates
+                    let rootGlobal = geo.frame(in: .global)
+                    let x = buttonRectGlobal.midX - rootGlobal.minX
+                    let y = buttonRectGlobal.maxY - rootGlobal.minY + 14
+
+                    HintOverlay(
+                        message: "🎯 Try different grid sizes!",
+                        arrowDirection: .up,
+                        onDismiss: {
+                            tutorialManager.markGridSizeSeen()
+                        }
+                    )
+                    // Place just below the toolbar button; arrow points up to the button.
+                    .position(x: x, y: y)
                 }
             }
         }
@@ -293,6 +323,33 @@ private struct BoardWidthPreferenceKey: PreferenceKey {
 
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
         value = nextValue()
+    }
+}
+
+private struct UndoAreaAnchorKey: PreferenceKey {
+    static var defaultValue: Anchor<CGRect>? = nil
+
+    static func reduce(value: inout Anchor<CGRect>?, nextValue: () -> Anchor<CGRect>?) {
+        value = nextValue() ?? value
+    }
+}
+
+private struct BoardAnchorKey: PreferenceKey {
+    static var defaultValue: Anchor<CGRect>? = nil
+
+    static func reduce(value: inout Anchor<CGRect>?, nextValue: () -> Anchor<CGRect>?) {
+        value = nextValue() ?? value
+    }
+}
+
+private struct GridSizeButtonFrameKey: PreferenceKey {
+    static var defaultValue: CGRect = .zero
+
+    static func reduce(value: inout CGRect, nextValue: () -> CGRect) {
+        let next = nextValue()
+        if next != .zero {
+            value = next
+        }
     }
 }
 
