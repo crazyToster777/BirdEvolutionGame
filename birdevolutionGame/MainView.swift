@@ -117,7 +117,7 @@ struct MainView: View {
             PowerUpBarView()
             UndoArea(game: game)
                 .anchorPreference(key: UndoAreaAnchorKey.self, value: .bounds) { $0 }
-            HowToPlayView(tileSize: game.gridSize.tileSize)
+            HowToPlayView(tileSize: game.gridSize.tileSize * 0.7)
             bannerAdSection
             Spacer(minLength: 0)
         }
