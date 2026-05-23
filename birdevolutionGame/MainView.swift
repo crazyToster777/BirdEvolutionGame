@@ -17,57 +17,42 @@ struct MainView: View {
     var body: some View {
         ZStack {
             backgroundLayer
-            NavigationView {
+            VStack(spacing: 0) {
+                topBar
                 contentStack
-                .background(Color.clear)
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarLeading) {
-                        GridSizeToolbarButton { showingGridSelector = true }
-                    }
-                    ToolbarItemGroup(placement: .navigationBarTrailing) {
-                        #if DEBUG
-                        debugMenu
-                        #endif
-                        ThemeMenuButton()
-                        SoundToggleButton()
-                        CalendarToolbarButton { showingCalendar = true }
-                    }
-                }
-                .onAppear(perform: handleAppear)
-                .sheet(isPresented: $showingGridSelector) {
-                    GridSizeSelector(currentSize: game.gridSize).environmentObject(game)
-                }
-                .sheet(isPresented: $showingCalendar) {
-                    CalendarView().environmentObject(game)
-                }
-                .fullScreenCover(isPresented: $showOnboarding) {
-                    OnboardingView(isPresented: $showOnboarding)
-                }
-                .sheet(isPresented: $game.gameState.hasWon) {
-                    WinView(
-                        score: game.score,
-                        maxTile: game.maxTileValue,
-                        onContinue: {},
-                        onNewGame: { game.startNewGame() }
-                    )
-                }
-                .sheet(isPresented: $game.gameState.gameOver) {
-                    GameOverView(
-                        score: game.score,
-                        bestScore: game.bestScore,
-                        canUndo: game.canUndo,
-                        onUndo: { game.undo() },
-                        onNewGame: { game.startNewGame() }
-                    )
-                }
-                .overlayPreferenceValue(BoardAnchorKey.self, boardHintOverlay)
-                .overlayPreferenceValue(UndoAreaAnchorKey.self, undoHintOverlay)
-                .overlayPreferenceValue(GridSizeButtonFrameKey.self, gridSizeHintOverlay)
             }
-            .background(Color.clear)
-            .navigationViewStyle(.stack)
-            .onChange(of: scenePhase, perform: handleScenePhase)
         }
+        .onAppear(perform: handleAppear)
+        .sheet(isPresented: $showingGridSelector) {
+            GridSizeSelector(currentSize: game.gridSize).environmentObject(game)
+        }
+        .sheet(isPresented: $showingCalendar) {
+            CalendarView().environmentObject(game)
+        }
+        .fullScreenCover(isPresented: $showOnboarding) {
+            OnboardingView(isPresented: $showOnboarding)
+        }
+        .sheet(isPresented: $game.gameState.hasWon) {
+            WinView(
+                score: game.score,
+                maxTile: game.maxTileValue,
+                onContinue: {},
+                onNewGame: { game.startNewGame() }
+            )
+        }
+        .sheet(isPresented: $game.gameState.gameOver) {
+            GameOverView(
+                score: game.score,
+                bestScore: game.bestScore,
+                canUndo: game.canUndo,
+                onUndo: { game.undo() },
+                onNewGame: { game.startNewGame() }
+            )
+        }
+        .overlayPreferenceValue(BoardAnchorKey.self, boardHintOverlay)
+        .overlayPreferenceValue(UndoAreaAnchorKey.self, undoHintOverlay)
+        .overlayPreferenceValue(GridSizeButtonFrameKey.self, gridSizeHintOverlay)
+        .onChange(of: scenePhase, perform: handleScenePhase)
     }
 
     // MARK: - Background
@@ -83,6 +68,23 @@ struct MainView: View {
             themeManager.currentBackground.color
                 .ignoresSafeArea()
         }
+    }
+
+    // MARK: - Top Bar
+
+    private var topBar: some View {
+        HStack(spacing: 8) {
+            GridSizeToolbarButton { showingGridSelector = true }
+            Spacer()
+            #if DEBUG
+            debugMenu
+            #endif
+            ThemeMenuButton()
+            SoundToggleButton()
+            CalendarToolbarButton { showingCalendar = true }
+        }
+        .padding(.horizontal, 12)
+        .frame(height: 44)
     }
 
     // MARK: - Content Stack
@@ -192,7 +194,7 @@ private extension MainView {
             Image(systemName: "ladybug.fill")
                 .font(.body)
                 .foregroundColor(.red)
-                .frame(width: 10, height: 10)
+                .frame(width: 36, height: 36)
                 .background(.ultraThinMaterial)
                 .clipShape(Circle())
                 .opacity(0.01)
@@ -207,4 +209,6 @@ private extension MainView {
 #Preview {
     MainView()
         .environmentObject(BirdEvolutionGameViewModel())
+        .environmentObject(AudioManager.shared)
+        .environmentObject(ThemeManager())
 }
