@@ -101,9 +101,10 @@ struct MainView: View {
             Image(imageName)
                 .resizable()
                 .aspectRatio(contentMode: .fill)
-                .clipped()
+                .ignoresSafeArea()
         } else {
             themeManager.currentBackground.color
+                .ignoresSafeArea()
         }
     }
 
