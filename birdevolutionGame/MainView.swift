@@ -5,64 +5,79 @@ struct MainView: View {
     @EnvironmentObject var audioManager: AudioManager
     @EnvironmentObject var themeManager: ThemeManager
     @Environment(\.scenePhase) var scenePhase
-    @StateObject private var tutorialManager = TutorialManager.shared
+    @ObservedObject private var tutorialManager = TutorialManager.shared
 
     @State private var showingCalendar = false
     @State private var showingGridSelector = false
     @State private var showOnboarding = false
+    @State private var showWinView = false
+    @State private var showGameOverView = false
     @State private var boardWidth: CGFloat = 0
 
     // MARK: - Body
 
     var body: some View {
         NavigationView {
-            ZStack(alignment: .top) {
-                backgroundLayer
-                contentStack
-            }
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    GridSizeToolbarButton { showingGridSelector = true }
+            contentStack
+                .background { backgroundContent }
+                .navigationTitle("")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        GridSizeToolbarButton { showingGridSelector = true }
+                    }
+                    ToolbarItemGroup(placement: .navigationBarTrailing) {
+                        #if DEBUG
+                        debugMenu
+                        #endif
+                        ThemeMenuButton()
+                        SoundToggleButton()
+                        CalendarToolbarButton { showingCalendar = true }
+                    }
                 }
-                ToolbarItemGroup(placement: .navigationBarTrailing) {
-                    #if DEBUG
-                    debugMenu
-                    #endif
-                    ThemeMenuButton()
-                    SoundToggleButton()
-                    CalendarToolbarButton { showingCalendar = true }
+                .onAppear(perform: handleAppear)
+                .sheet(isPresented: $showingGridSelector) {
+                    GridSizeSelector(currentSize: game.gridSize).environmentObject(game)
                 }
-            }
-            .onAppear(perform: handleAppear)
-            .sheet(isPresented: $showingGridSelector) {
-                GridSizeSelector(currentSize: game.gridSize).environmentObject(game)
-            }
-            .sheet(isPresented: $showingCalendar) {
-                CalendarView().environmentObject(game)
-            }
-            .fullScreenCover(isPresented: $showOnboarding) {
-                OnboardingView(isPresented: $showOnboarding)
-            }
-            .sheet(isPresented: $game.gameState.hasWon) {
-                WinView(
-                    score: game.score,
-                    maxTile: game.maxTileValue,
-                    onContinue: {},
-                    onNewGame: { game.startNewGame() }
-                )
-            }
-            .sheet(isPresented: $game.gameState.gameOver) {
-                GameOverView(
-                    score: game.score,
-                    bestScore: game.bestScore,
-                    canUndo: game.canUndo,
-                    onUndo: { game.undo() },
-                    onNewGame: { game.startNewGame() }
-                )
-            }
-            .overlayPreferenceValue(BoardAnchorKey.self, boardHintOverlay)
-            .overlayPreferenceValue(UndoAreaAnchorKey.self, undoHintOverlay)
-            .overlayPreferenceValue(GridSizeButtonFrameKey.self, gridSizeHintOverlay)
+                .sheet(isPresented: $showingCalendar) {
+                    CalendarView().environmentObject(game)
+                }
+                .fullScreenCover(isPresented: $showOnboarding) {
+                    OnboardingView(isPresented: $showOnboarding)
+                }
+                .sheet(isPresented: $showWinView) {
+                    WinView(
+                        score: game.score,
+                        maxTile: game.maxTileValue,
+                        onContinue: {},
+                        onNewGame: {
+                            showWinView = false
+                            game.startNewGame()
+                        }
+                    )
+                }
+                .sheet(isPresented: $showGameOverView) {
+                    GameOverView(
+                        score: game.score,
+                        bestScore: game.bestScore,
+                        canUndo: game.canUndo,
+                        onUndo: { game.undo() },
+                        onNewGame: {
+                            showGameOverView = false
+                            game.startNewGame()
+                        }
+                    )
+                }
+                .onChange(of: game.gameState.hasWon) { isWon in
+                    if isWon { showWinView = true }
+                }
+                .onChange(of: game.gameState.gameOver) { isOver in
+                    if isOver { showGameOverView = true }
+                }
+                .overlayPreferenceValue(BoardAnchorKey.self, boardHintOverlay)
+                .overlayPreferenceValue(UndoAreaAnchorKey.self, undoHintOverlay)
+                .overlayPreferenceValue(GridSizeButtonFrameKey.self, gridSizeHintOverlay)
         }
         .navigationViewStyle(.stack)
         .onChange(of: scenePhase, perform: handleScenePhase)
@@ -71,15 +86,14 @@ struct MainView: View {
     // MARK: - Background
 
     @ViewBuilder
-    private var backgroundLayer: some View {
+    private var backgroundContent: some View {
         if let imageName = themeManager.currentBackground.backgroundImageName {
             Image(imageName)
                 .resizable()
                 .aspectRatio(contentMode: .fill)
-                .ignoresSafeArea()
+                .clipped()
         } else {
             themeManager.currentBackground.color
-                .ignoresSafeArea()
         }
     }
 
@@ -205,4 +219,6 @@ private extension MainView {
 #Preview {
     MainView()
         .environmentObject(BirdEvolutionGameViewModel())
+        .environmentObject(AudioManager.shared)
+        .environmentObject(ThemeManager())
 }
