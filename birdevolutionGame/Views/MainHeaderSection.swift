@@ -21,5 +21,6 @@ struct MainHeaderSection: View {
             .frame(maxWidth: boardWidth > 0 ? boardWidth : 320 * DeviceInfo.paddingMultiplier)
         }
         .padding(.horizontal, 8 * DeviceInfo.paddingMultiplier)
+        .padding(.top, 8 * DeviceInfo.paddingMultiplier)
     }
 }
