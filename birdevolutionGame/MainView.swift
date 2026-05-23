@@ -5,21 +5,40 @@ struct MainView: View {
     @EnvironmentObject var audioManager: AudioManager
     @EnvironmentObject var themeManager: ThemeManager
     @Environment(\.scenePhase) var scenePhase
-    @StateObject private var tutorialManager = TutorialManager.shared
+    @ObservedObject private var tutorialManager = TutorialManager.shared
 
     @State private var showingCalendar = false
     @State private var showingGridSelector = false
     @State private var showOnboarding = false
+    @State private var showWinView = false
+    @State private var showGameOverView = false
     @State private var boardWidth: CGFloat = 0
 
     // MARK: - Body
 
     var body: some View {
         NavigationView {
-            ZStack(alignment: .top) {
-                backgroundLayer
-                contentStack
-            }
+            gameScreen
+        }
+        .navigationViewStyle(.stack)
+        .onChange(of: scenePhase, perform: handleScenePhase)
+    }
+
+    // Split into two properties so the Swift type-checker doesn't time out.
+
+    private var gameScreen: some View {
+        sheetsAndObservers
+            .overlayPreferenceValue(BoardAnchorKey.self, boardHintOverlay)
+            .overlayPreferenceValue(UndoAreaAnchorKey.self, undoHintOverlay)
+            .overlayPreferenceValue(GridSizeButtonFrameKey.self, gridSizeHintOverlay)
+    }
+
+    private var sheetsAndObservers: some View {
+        contentStack
+            .background { backgroundContent }
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     GridSizeToolbarButton { showingGridSelector = true }
@@ -43,35 +62,41 @@ struct MainView: View {
             .fullScreenCover(isPresented: $showOnboarding) {
                 OnboardingView(isPresented: $showOnboarding)
             }
-            .sheet(isPresented: $game.gameState.hasWon) {
+            .sheet(isPresented: $showWinView) {
                 WinView(
                     score: game.score,
                     maxTile: game.maxTileValue,
                     onContinue: {},
-                    onNewGame: { game.startNewGame() }
+                    onNewGame: {
+                        showWinView = false
+                        game.startNewGame()
+                    }
                 )
             }
-            .sheet(isPresented: $game.gameState.gameOver) {
+            .sheet(isPresented: $showGameOverView) {
                 GameOverView(
                     score: game.score,
                     bestScore: game.bestScore,
                     canUndo: game.canUndo,
                     onUndo: { game.undo() },
-                    onNewGame: { game.startNewGame() }
+                    onNewGame: {
+                        showGameOverView = false
+                        game.startNewGame()
+                    }
                 )
             }
-            .overlayPreferenceValue(BoardAnchorKey.self, boardHintOverlay)
-            .overlayPreferenceValue(UndoAreaAnchorKey.self, undoHintOverlay)
-            .overlayPreferenceValue(GridSizeButtonFrameKey.self, gridSizeHintOverlay)
-        }
-        .navigationViewStyle(.stack)
-        .onChange(of: scenePhase, perform: handleScenePhase)
+            .onChange(of: game.gameState.hasWon) { isWon in
+                if isWon { showWinView = true }
+            }
+            .onChange(of: game.gameState.gameOver) { isOver in
+                if isOver { showGameOverView = true }
+            }
     }
 
     // MARK: - Background
 
     @ViewBuilder
-    private var backgroundLayer: some View {
+    private var backgroundContent: some View {
         if let imageName = themeManager.currentBackground.backgroundImageName {
             Image(imageName)
                 .resizable()
@@ -92,7 +117,7 @@ struct MainView: View {
             PowerUpBarView()
             UndoArea(game: game)
                 .anchorPreference(key: UndoAreaAnchorKey.self, value: .bounds) { $0 }
-            HowToPlayView(tileSize: game.gridSize.tileSize)
+            HowToPlayView(tileSize: 40 * DeviceInfo.sizeMultiplier)
             bannerAdSection
             Spacer(minLength: 0)
         }
@@ -205,4 +230,6 @@ private extension MainView {
 #Preview {
     MainView()
         .environmentObject(BirdEvolutionGameViewModel())
+        .environmentObject(AudioManager.shared)
+        .environmentObject(ThemeManager())
 }

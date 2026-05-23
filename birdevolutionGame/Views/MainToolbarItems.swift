@@ -15,8 +15,6 @@ struct GridSizeToolbarButton: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 4)
-            .background(.ultraThinMaterial)
-            .cornerRadius(12)
             .background(
                 GeometryReader { proxy in
                     Color.clear.preference(
@@ -84,7 +82,4 @@ private func toolbarIcon(_ systemName: String, color: Color) -> some View {
     Image(systemName: systemName)
         .font(.body)
         .foregroundColor(color)
-        .frame(width: 36, height: 36)
-        .background(.ultraThinMaterial)
-        .clipShape(Circle())
 }

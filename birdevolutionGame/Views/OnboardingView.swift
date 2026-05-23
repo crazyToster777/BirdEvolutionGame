@@ -295,50 +295,54 @@ struct FeatureItem: View {
 // MARK: - Power-Ups Page
 struct PowerUpsPage: View {
     var body: some View {
-        VStack(spacing: 30 * DeviceInfo.paddingMultiplier) {
+        VStack(spacing: 20 * DeviceInfo.paddingMultiplier) {
             Text("Power-Ups & Combos")
                 .font(.system(size: 36 * DeviceInfo.fontMultiplier, weight: .bold))
-            
+
             ScrollView {
                 VStack(alignment: .leading, spacing: 20 * DeviceInfo.paddingMultiplier) {
-                    Text("💥 Power-Ups")
+                    Text("⚡ Power-Ups")
                         .font(.title2.bold())
                         .padding(.top)
-                    
-                    PowerUpItem(
-                        emoji: "💣",
-                        title: "Bomb",
-                        description: "Clears surrounding tiles"
-                    )
-                    
-                    PowerUpItem(
-                        emoji: "🌈",
-                        title: "Rainbow",
-                        description: "Merges with any tile"
-                    )
-                    
-                    PowerUpItem(
-                        emoji: "✖️",
-                        title: "Multiplier",
-                        description: "Doubles next merge value"
-                    )
-                    
-                    PowerUpItem(
-                        emoji: "🔀",
-                        title: "Shuffle",
-                        description: "Randomizes the board"
-                    )
-                    
-                    Divider()
-                        .padding(.vertical)
-                    
-                    Text("🔥 Combo System")
-                        .font(.title2.bold())
-                    
-                    Text("Make multiple merges in one move to earn combo bonuses and increase power-up chances!")
+
+                    Text("Tap buttons in the bar below the board to activate. Earn one by merging any tile to ≥64.")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
-                    
+
+                    PowerUpItem(
+                        emoji: "⚡",
+                        title: "Energy Rush",
+                        description: "+40 energy instantly — great when the bar is running low"
+                    )
+
+                    PowerUpItem(
+                        emoji: "❄️",
+                        title: "Freeze",
+                        description: "Pauses energy drain until your next swipe — plan your move carefully!"
+                    )
+
+                    PowerUpItem(
+                        emoji: "🔨",
+                        title: "Smash",
+                        description: "Removes all tiles matching the lowest value on the board"
+                    )
+
+                    PowerUpItem(
+                        emoji: "💡",
+                        title: "Hint",
+                        description: "Flashes the best swipe direction on the board for 1.5 seconds"
+                    )
+
+                    Divider()
+                        .padding(.vertical)
+
+                    Text("🔥 Combo System")
+                        .font(.title2.bold())
+
+                    Text("Keep merging on consecutive moves to build a streak and earn bonus points!")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+
                     HStack(spacing: 15) {
                         ComboLevelBadge(level: "2x", color: .blue, bonus: "+50")
                         ComboLevelBadge(level: "3x", color: .purple, bonus: "+150")
@@ -347,7 +351,7 @@ struct PowerUpsPage: View {
                 }
                 .padding()
             }
-            
+
             Spacer()
         }
         .padding()
@@ -441,4 +445,5 @@ struct ReadyPage: View {
 
 #Preview {
     OnboardingView(isPresented: .constant(true))
+        .environmentObject(BirdEvolutionGameViewModel())
 }
