@@ -18,69 +18,79 @@ struct MainView: View {
 
     var body: some View {
         NavigationView {
-            contentStack
-                .background { backgroundContent }
-                .navigationTitle("")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarLeading) {
-                        GridSizeToolbarButton { showingGridSelector = true }
-                    }
-                    ToolbarItemGroup(placement: .navigationBarTrailing) {
-                        #if DEBUG
-                        debugMenu
-                        #endif
-                        ThemeMenuButton()
-                        SoundToggleButton()
-                        CalendarToolbarButton { showingCalendar = true }
-                    }
-                }
-                .onAppear(perform: handleAppear)
-                .sheet(isPresented: $showingGridSelector) {
-                    GridSizeSelector(currentSize: game.gridSize).environmentObject(game)
-                }
-                .sheet(isPresented: $showingCalendar) {
-                    CalendarView().environmentObject(game)
-                }
-                .fullScreenCover(isPresented: $showOnboarding) {
-                    OnboardingView(isPresented: $showOnboarding)
-                }
-                .sheet(isPresented: $showWinView) {
-                    WinView(
-                        score: game.score,
-                        maxTile: game.maxTileValue,
-                        onContinue: {},
-                        onNewGame: {
-                            showWinView = false
-                            game.startNewGame()
-                        }
-                    )
-                }
-                .sheet(isPresented: $showGameOverView) {
-                    GameOverView(
-                        score: game.score,
-                        bestScore: game.bestScore,
-                        canUndo: game.canUndo,
-                        onUndo: { game.undo() },
-                        onNewGame: {
-                            showGameOverView = false
-                            game.startNewGame()
-                        }
-                    )
-                }
-                .onChange(of: game.gameState.hasWon) { isWon in
-                    if isWon { showWinView = true }
-                }
-                .onChange(of: game.gameState.gameOver) { isOver in
-                    if isOver { showGameOverView = true }
-                }
-                .overlayPreferenceValue(BoardAnchorKey.self, boardHintOverlay)
-                .overlayPreferenceValue(UndoAreaAnchorKey.self, undoHintOverlay)
-                .overlayPreferenceValue(GridSizeButtonFrameKey.self, gridSizeHintOverlay)
+            gameScreen
         }
         .navigationViewStyle(.stack)
         .onChange(of: scenePhase, perform: handleScenePhase)
+    }
+
+    // Split into two properties so the Swift type-checker doesn't time out.
+
+    private var gameScreen: some View {
+        sheetsAndObservers
+            .overlayPreferenceValue(BoardAnchorKey.self, boardHintOverlay)
+            .overlayPreferenceValue(UndoAreaAnchorKey.self, undoHintOverlay)
+            .overlayPreferenceValue(GridSizeButtonFrameKey.self, gridSizeHintOverlay)
+    }
+
+    private var sheetsAndObservers: some View {
+        contentStack
+            .background { backgroundContent }
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    GridSizeToolbarButton { showingGridSelector = true }
+                }
+                ToolbarItemGroup(placement: .navigationBarTrailing) {
+                    #if DEBUG
+                    debugMenu
+                    #endif
+                    ThemeMenuButton()
+                    SoundToggleButton()
+                    CalendarToolbarButton { showingCalendar = true }
+                }
+            }
+            .onAppear(perform: handleAppear)
+            .sheet(isPresented: $showingGridSelector) {
+                GridSizeSelector(currentSize: game.gridSize).environmentObject(game)
+            }
+            .sheet(isPresented: $showingCalendar) {
+                CalendarView().environmentObject(game)
+            }
+            .fullScreenCover(isPresented: $showOnboarding) {
+                OnboardingView(isPresented: $showOnboarding)
+            }
+            .sheet(isPresented: $showWinView) {
+                WinView(
+                    score: game.score,
+                    maxTile: game.maxTileValue,
+                    onContinue: {},
+                    onNewGame: {
+                        showWinView = false
+                        game.startNewGame()
+                    }
+                )
+            }
+            .sheet(isPresented: $showGameOverView) {
+                GameOverView(
+                    score: game.score,
+                    bestScore: game.bestScore,
+                    canUndo: game.canUndo,
+                    onUndo: { game.undo() },
+                    onNewGame: {
+                        showGameOverView = false
+                        game.startNewGame()
+                    }
+                )
+            }
+            .onChange(of: game.gameState.hasWon) { isWon in
+                if isWon { showWinView = true }
+            }
+            .onChange(of: game.gameState.gameOver) { isOver in
+                if isOver { showGameOverView = true }
+            }
     }
 
     // MARK: - Background
