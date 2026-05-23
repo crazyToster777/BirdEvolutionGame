@@ -8,6 +8,7 @@ struct BannerAdView: UIViewRepresentable {
         let banner = BannerView(adSize: AdSizeBanner) // 320x50
         banner.adUnitID = "ca-app-pub-2241716040388986/9736005701" // TEST banner
         banner.rootViewController = topViewController()
+        banner.translatesAutoresizingMaskIntoConstraints = false
         banner.load(Request())
         return banner
     }

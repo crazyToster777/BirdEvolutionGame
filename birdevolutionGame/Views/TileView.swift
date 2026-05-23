@@ -11,17 +11,15 @@ struct TileView: View {
     let isNewTile: Bool
     let newTileTrigger: Int
     let tileSize: CGFloat
-    let powerUpType: PowerUpType?  // Power-up indicator
-    let onTap: () -> Void  // Tap handler
-    
+
     @State private var rotationX: Double = 0
     @State private var rotationY: Double = 0
     @State private var lastTrigger: Int = 0
     @State private var isAnimating = false
     @State private var scale: Double = 1.0
     @State private var lastNewTileTrigger: Int = 0
-    
-    init(value: Int, position: Position, rotationTrigger: Int, rotationDirection: MergeRotationGameBoardView.RotationDirection, shouldRotate: Bool, isNewTile: Bool, newTileTrigger: Int, tileSize: CGFloat = 70, powerUpType: PowerUpType? = nil, onTap: @escaping () -> Void = {}) {
+
+    init(value: Int, position: Position, rotationTrigger: Int, rotationDirection: MergeRotationGameBoardView.RotationDirection, shouldRotate: Bool, isNewTile: Bool, newTileTrigger: Int, tileSize: CGFloat = 70) {
         self.value = value
         self.position = position
         self.rotationTrigger = rotationTrigger
@@ -30,19 +28,16 @@ struct TileView: View {
         self.isNewTile = isNewTile
         self.newTileTrigger = newTileTrigger
         self.tileSize = tileSize
-        self.powerUpType = powerUpType
-        self.onTap = onTap
-        
+
         _scale = State(initialValue: isNewTile ? 0.1 : 1.0)
     }
-    
+
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 8)
                 .fill(tileGradient)
                 .frame(width: tileSize, height: tileSize)
-            
-            
+
             if value > 0 {
                 Image(getTileImg(for: value))
                     .resizable()
@@ -51,13 +46,8 @@ struct TileView: View {
                     .clipped()
                     .cornerRadius(8)
             }
-            
-            // Power-up indicator overlay (unchanged)
-            if powerUpType != nil {
-                PowerUpIndicatorView(powerUpType: powerUpType, tileSize: tileSize)
-            }
         }
-        .frame(width: tileSize, height: tileSize) // Prevent glow from expanding the tile layout
+        .frame(width: tileSize, height: tileSize)
         .scaleEffect(scale)
         .rotation3DEffect(.degrees(rotationX), axis: (1,0,0))
         .rotation3DEffect(.degrees(rotationY), axis: (0,1,0))
@@ -79,16 +69,13 @@ struct TileView: View {
                 lastNewTileTrigger = newValue
             }
         }
-        .onTapGesture {
-            onTap()
-        }
     }
-    
+
     private var tileGradient: LinearGradient {
         guard value > 0 else {
             return LinearGradient(colors: [Color.gray.opacity(0.3)], startPoint: .top, endPoint: .bottom)
         }
-        
+
         let colors = getTileColors(for: value)
         return LinearGradient(
             colors: colors,
@@ -96,9 +83,7 @@ struct TileView: View {
             endPoint: .bottomTrailing
         )
     }
-    
-    
-    
+
     private func getTileColors(for value: Int) -> [Color] {
         switch value {
         case 2: return [.orange, .red]
@@ -115,6 +100,7 @@ struct TileView: View {
         default: return [.gray, .black]
         }
     }
+
     private func getTileImg(for value: Int) -> String {
         switch value {
         case 2: return "2"
@@ -134,48 +120,43 @@ struct TileView: View {
         default: return "2"
         }
     }
-    
+
     private func performDirectionalRotation() {
         guard !isAnimating && value > 0 else { return }
-        
+
         isAnimating = true
-        
+
         switch rotationDirection {
         case .leftSpin:
             withAnimation(.easeInOut(duration: 0.8)) {
                 rotationY -= 360
             }
-            
         case .rightSpin:
             withAnimation(.easeInOut(duration: 0.8)) {
                 rotationY += 360
             }
-            
         case .upFlip:
             withAnimation(.easeInOut(duration: 0.8)) {
                 rotationX -= 360
             }
-            
         case .downFlip:
             withAnimation(.easeInOut(duration: 0.8)) {
                 rotationX += 360
             }
         }
-        
+
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
             isAnimating = false
             rotationX = 0
             rotationY = 0
         }
     }
-    
+
     private func performNewTileAnimation() {
         guard value > 0 else { return }
-        
+
         withAnimation(.spring(response: 0.6, dampingFraction: 0.8, blendDuration: 0)) {
             scale = 1.0
         }
     }
 }
-
-

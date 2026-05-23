@@ -11,14 +11,9 @@ struct GameState: Equatable {
     let gridSize: Int
     var undosRemaining: Int
     
-    // Power-up system
-    var powerUpGrid: [[PowerUpType?]]  // Tracks which tiles have power-ups
-    var activeMultiplier: Bool = false  // Tracks if multiplier is active for next merge
-    
     init(gridSize: Int = 4) {
         self.gridSize = gridSize
         self.grid = Array(repeating: Array(repeating: 0, count: gridSize), count: gridSize)
-        self.powerUpGrid = Array(repeating: Array(repeating: nil, count: gridSize), count: gridSize)
         self.score = 0
         self.energy = EnergyConfig.startingEnergy
         self.maxEnergy = EnergyConfig.maxEnergy
