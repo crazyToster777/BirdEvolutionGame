@@ -15,11 +15,18 @@ struct MainView: View {
     // MARK: - Body
 
     var body: some View {
-        VStack(spacing: 0) {
-            topBar
-            contentStack
+        GeometryReader { proxy in
+            ZStack(alignment: .top) {
+                backgroundContent
+                VStack(spacing: 0) {
+                    topBar
+                    contentStack
+                }
+                .padding(.top, proxy.safeAreaInsets.top)
+                .padding(.bottom, proxy.safeAreaInsets.bottom)
+            }
         }
-        .background(ignoresSafeAreaEdges: .all) { backgroundContent }
+        .ignoresSafeArea()
         .onAppear(perform: handleAppear)
         .sheet(isPresented: $showingGridSelector) {
             GridSizeSelector(currentSize: game.gridSize).environmentObject(game)
