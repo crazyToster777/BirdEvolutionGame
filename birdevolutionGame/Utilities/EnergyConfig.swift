@@ -14,6 +14,10 @@ struct EnergyConfig {
     static let timeDecayRate: Double = 0.8 // Reduced from 1.0 to give more breathing room
     static let decayInterval: Double = 0.5 // Update frequency (twice per second)
     
+    // Power-up constants
+    static let energyRushAmount: Double = 40.0
+    static let freezeDuration: Double = 15.0
+
     // Warning thresholds for UI
     static let lowEnergyThreshold: Double = 30.0
     static let criticalEnergyThreshold: Double = 15.0

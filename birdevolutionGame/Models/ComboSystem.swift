@@ -11,24 +11,10 @@ class ComboSystem: ObservableObject {
     private let combo3xBonus = 150
     private let combo4xBonus = 500
     
-    // Power-up spawn rate multipliers based on combo
-    var powerUpSpawnRate: Double {
-        switch currentCombo {
-        case 0...1:
-            return 0.05  // 5% base rate
-        case 2:
-            return 0.08  // 8% for 2x combo
-        case 3:
-            return 0.12  // 12% for 3x combo
-        default:
-            return 0.20  // 20% for 4x+ combo
-        }
-    }
-    
     /// Update combo count based on number of merges in current move
     func updateCombo(mergeCount: Int) {
         if mergeCount > 0 {
-            currentCombo = mergeCount
+            currentCombo += 1
             comboBonus = calculateBonus()
             totalComboScore += comboBonus
         } else {

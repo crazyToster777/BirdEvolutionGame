@@ -44,9 +44,9 @@ enum GridSize: Int, CaseIterable, Codable {
     var tileSize: CGFloat {
         let baseSize: CGFloat
         switch self {
-        case .small: baseSize = 70
-        case .medium: baseSize = 56
-        case .large: baseSize = 46
+        case .small: baseSize = 62
+        case .medium: baseSize = 50
+        case .large: baseSize = 41
         }
         return baseSize * DeviceInfo.sizeMultiplier
     }

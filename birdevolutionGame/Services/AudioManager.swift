@@ -93,21 +93,11 @@ class AudioManager: ObservableObject {
         // Play different feeling haptics/sounds based on combo level
         switch level {
         case 2:
-            let generator = UIImpactFeedbackGenerator(style: .medium)
-            generator.impactOccurred()
-            // Standard system sound for positive feedback
             AudioServicesPlaySystemSound(1057)
-            
         case 3:
-            let generator = UIImpactFeedbackGenerator(style: .heavy)
-            generator.impactOccurred()
             AudioServicesPlaySystemSound(1001)
-            
         case 4...:
-            let generator = UINotificationFeedbackGenerator()
-            generator.notificationOccurred(.success)
             AudioServicesPlaySystemSound(1025)
-            
         default:
             break
         }
@@ -119,19 +109,18 @@ class AudioManager: ObservableObject {
         let generator = UINotificationFeedbackGenerator()
         
         switch type {
-        case .bomb:
-            generator.notificationOccurred(.warning)
-            AudioServicesPlaySystemSound(1005) // Alarm-like
-        case .rainbow:
+        case .energyRush:
             generator.notificationOccurred(.success)
-            AudioServicesPlaySystemSound(1106)
-        case .multiplier:
+            AudioServicesPlaySystemSound(1057)
+        case .freeze:
             generator.notificationOccurred(.success)
             AudioServicesPlaySystemSound(1103)
-        case .shuffle:
-            let impact = UIImpactFeedbackGenerator(style: .heavy)
-            impact.impactOccurred()
+        case .smash:
+            generator.notificationOccurred(.warning)
             AudioServicesPlaySystemSound(1104)
+        case .hint:
+            generator.notificationOccurred(.success)
+            AudioServicesPlaySystemSound(1106)
         }
     }
     

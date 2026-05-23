@@ -2,45 +2,30 @@ import Foundation
 
 /// Types of power-ups available in the game
 enum PowerUpType: String, Codable, CaseIterable {
-    case bomb = "💣"
-    case rainbow = "🌈"
-    case multiplier = "✖️"
-    case shuffle = "🔀"
-    
+    case energyRush = "⚡"
+    case freeze = "❄️"
+    case smash = "🔨"
+    case hint = "💡"
+
     var displayName: String {
         switch self {
-        case .bomb: return "Bomb"
-        case .rainbow: return "Rainbow"
-        case .multiplier: return "Multiplier"
-        case .shuffle: return "Shuffle"
+        case .energyRush: return "Energy"
+        case .freeze: return "Freeze"
+        case .smash: return "Smash"
+        case .hint: return "Hint"
         }
     }
-    
+
     var description: String {
         switch self {
-        case .bomb:
-            return "Clears surrounding tiles"
-        case .rainbow:
-            return "Merges with any tile"
-        case .multiplier:
-            return "Doubles next merge"
-        case .shuffle:
-            return "Randomizes board"
+        case .energyRush: return "+40 energy instantly"
+        case .freeze: return "Pause time-decay 15s"
+        case .smash: return "Remove lowest tiles"
+        case .hint: return "Flash best swipe direction"
         }
     }
-    
+
     var emoji: String {
         return self.rawValue
-    }
-}
-
-/// Represents a power-up in the game
-struct PowerUp: Codable, Equatable {
-    let type: PowerUpType
-    let id: UUID
-    
-    init(type: PowerUpType) {
-        self.type = type
-        self.id = UUID()
     }
 }

@@ -1,18 +1,23 @@
 
 import SwiftUI
 import Combine
+import AudioToolbox
 
 class BirdEvolutionGameViewModel: ObservableObject {
     @Published var gameState: GameState
     @Published var bestScore: Int = 0
     @Published var dayStats: [String: DayStats] = [:]
     @Published var gridSize: GridSize
-    
-    // Combo and Power-up System
+
+    // Combo System
     @Published var comboCount: Int = 0
     @Published var comboBonus: Int = 0
     @Published var showComboBanner: Bool = false
-    @Published var activePowerUpPositions: Set<Position> = []
+
+    // Power-up inventory (lives in ViewModel only — undo does not restore spent power-ups)
+    @Published var powerUpInventory: [PowerUpType: Int] = [:]
+    @Published var isEnergyFrozen: Bool = false
+    @Published var hintDirection: Direction? = nil
 
     private var gameModel: GameModel
     private let persistenceManager = GamePersistenceManager()
@@ -24,16 +29,16 @@ class BirdEvolutionGameViewModel: ObservableObject {
     private var hasUsedUndo: Bool = false
     private var gamesCompleted: Int = 0
     private var gameTimer: Timer?
+    private var freezeTimer: DispatchWorkItem? = nil
 
     var grid: [[Int]] { gameState.grid }
     var score: Int { gameState.score }
     var gameOver: Bool { gameState.gameOver }
     var hasWon: Bool { gameState.hasWon }
     var maxTileValue: Int { gameState.maxTileValue }
-    var canUndo: Bool {  gameState.undosRemaining > 0 }
+    var canUndo: Bool { gameState.undosRemaining > 0 }
 
     init() {
-        // Use a local variable for gridSize's initial value
         let initialGridSize: GridSize = .small
         self.gridSize = initialGridSize
         self.gameModel = GameModel(gridSize: initialGridSize.rawValue)
@@ -47,7 +52,7 @@ class BirdEvolutionGameViewModel: ObservableObject {
     func grantUndo() {
         gameState.undosRemaining = GameConstants.maxUndos
     }
-    
+
     func startNewGame() {
         if gameState.score > 0 || currentSessionMoves > 0 {
             recordGameSession()
@@ -58,107 +63,84 @@ class BirdEvolutionGameViewModel: ObservableObject {
         currentSessionMoves = 0
         currentSessionStartTime = Date()
 
-        // Reset undo state
         gameStateHistory.removeAll()
         gameState.undosRemaining = GameConstants.maxUndos
-        
-        // Reset combo and power-up state
+
         comboSystem.reset()
         updateComboUI()
-        activePowerUpPositions.removeAll()
-        
-        // Reset Energy
+
+        // Reset power-up state — start each game with 3 of every type
+        powerUpInventory = Dictionary(uniqueKeysWithValues: PowerUpType.allCases.map { ($0, 3) })
+        freezeTimer?.cancel()
+        freezeTimer = nil
+        isEnergyFrozen = false
+        hintDirection = nil
+
         gameState.energy = EnergyConfig.startingEnergy
         gameState.maxEnergy = EnergyConfig.maxEnergy
-        
+
         startEnergyDecay()
     }
 
     func move(_ direction: Direction) -> (mergedPositions: Set<Position>, newTilePositions: Set<Position>) {
-        // Save current state to history before move
         saveStateToHistory()
 
         let moveResult = gameModel.performMove(direction, on: gameState)
 
         guard moveResult.gridChanged else {
-            // Remove the saved state since move didn't happen
             if !gameStateHistory.isEmpty {
                 gameStateHistory.removeLast()
             }
-            // Reset combo on failed move
             comboSystem.reset()
             updateComboUI()
             return ([], [])
         }
 
         currentSessionMoves += 1
-        
-        // Count merges for combo system
+
         let mergeCount = moveResult.mergedPositions.count
         comboSystem.updateCombo(mergeCount: mergeCount)
-        
-        // Play combo sound if applicable
+
         if comboSystem.currentCombo >= 2 {
             AudioManager.shared.playComboSound(level: comboSystem.currentCombo)
         }
-        
-        // Apply combo bonus to score
-        var totalScore = moveResult.scoreGained + comboSystem.comboBonus
-        
-        // Apply multiplier if active
-        if gameState.activeMultiplier {
-            totalScore = PowerUpEffects.applyMultiplier(to: totalScore)
-            gameState.activeMultiplier = false
-        }
-        
-        // Update Energy Logic
-        // 1. Consume move cost
+
+        let totalScore = moveResult.scoreGained + comboSystem.comboBonus
+
+        // Update Energy
         gameState.energy -= EnergyConfig.moveCost
-        
-        // 2. Restore energy from merges
-        // 2. Restore energy from merges
+
         if mergeCount > 0 {
             let flatRestore = Double(mergeCount) * EnergyConfig.mergeRestoration
             let scoreRestore = Double(moveResult.scoreGained) * EnergyConfig.energyPerScorePoint
-            
             let totalRestore = flatRestore + scoreRestore
-            
-            // Bonus for combos
             let comboMultiplier = comboSystem.currentCombo > 1 ? EnergyConfig.comboBonusMultiplier : 1.0
             gameState.energy += totalRestore * comboMultiplier
         }
-        
-        // 3. Cap at max energy
+
         gameState.energy = min(gameState.energy, gameState.maxEnergy)
-        
+
         gameState.grid = moveResult.newGrid
         gameState.score += totalScore
         gameState.maxTileValue = gameState.calculatedMaxTileValue
-        
-        // Check for Energy Depletion Game Over
-        // Check for Energy Depletion Game Over
+
+        // Award power-up if a merge produced a tile >= 64
+        awardPowerUpIfEarned(mergedPositions: moveResult.mergedPositions)
+
+        // Check for energy depletion game over
         if gameState.energy <= 0 {
             gameState.energy = 0
             gameState.gameOver = true
             stopEnergyDecay()
-            AudioManager.shared.playPowerUpSound(type: .bomb) // Reuse sound or add game over sound
+            AudioServicesPlaySystemSound(1005)
         }
 
         if moveResult.hasWon && !gameState.hasWon {
             gameState.hasWon = true
         }
 
-        // Add new tile with possible power-up
         let addTileResult = gameModel.addRandomTile(to: gameState)
         gameState = addTileResult.gameState
-        
-        // Generate power-up based on combo
-        if let newTilePosition = addTileResult.newTilePosition {
-            if let powerUpType = PowerUpEffects.generatePowerUp(spawnRate: comboSystem.powerUpSpawnRate) {
-                gameState.powerUpGrid[newTilePosition.row][newTilePosition.col] = powerUpType
-                activePowerUpPositions.insert(newTilePosition)
-            }
-        }
 
         var newTilePositions: Set<Position> = []
         if let newTilePosition = addTileResult.newTilePosition {
@@ -173,26 +155,60 @@ class BirdEvolutionGameViewModel: ObservableObject {
             gamesCompleted += 1
             TutorialManager.shared.checkGridSizeHint(gamesCompleted: gamesCompleted)
         }
-        
-        // Check for undo hint
+
         TutorialManager.shared.checkUndoHint(moveCount: currentSessionMoves, hasUsedUndo: hasUsedUndo)
-        
-        // Update combo UI
         updateComboUI()
-        
+
         return (moveResult.mergedPositions, newTilePositions)
     }
-    
+
+    // MARK: - Power-Up Activation
+
+    func activatePowerUp(_ type: PowerUpType) {
+        guard (powerUpInventory[type] ?? 0) > 0, !gameState.gameOver, !gameState.hasWon else { return }
+        powerUpInventory[type] = (powerUpInventory[type] ?? 1) - 1
+        AudioManager.shared.playPowerUpSound(type: type)
+        switch type {
+        case .energyRush:
+            gameState.energy = PowerUpEffects.applyEnergyRush(to: gameState.energy, max: gameState.maxEnergy)
+        case .freeze:
+            isEnergyFrozen = true
+            freezeTimer?.cancel()
+            let work = DispatchWorkItem { [weak self] in self?.isEnergyFrozen = false }
+            freezeTimer = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + EnergyConfig.freezeDuration, execute: work)
+        case .smash:
+            PowerUpEffects.applySmash(to: &gameState.grid, gridSize: gameState.gridSize)
+            gameState.maxTileValue = gameState.calculatedMaxTileValue
+            if gameState.grid.allSatisfy({ $0.allSatisfy { $0 == 0 } }) {
+                let result = gameModel.addRandomTile(to: gameState)
+                gameState = result.gameState
+            }
+        case .hint:
+            hintDirection = PowerUpEffects.computeBestHintDirection(
+                grid: gameState.grid, gridSize: gameState.gridSize, model: gameModel)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in self?.hintDirection = nil }
+        }
+    }
+
+    private func awardPowerUpIfEarned(mergedPositions: Set<Position>) {
+        for position in mergedPositions {
+            let tileValue = gameState.grid[position.row][position.col]
+            if tileValue >= 64, let randomType = PowerUpType.allCases.randomElement() {
+                let current = powerUpInventory[randomType, default: 0]
+                if current < 5 { powerUpInventory[randomType] = current + 1 }
+            }
+        }
+    }
+
     // MARK: - Combo System
-    
+
     private func updateComboUI() {
         comboCount = comboSystem.currentCombo
         comboBonus = comboSystem.comboBonus
-        
-        // Show combo banner for 2x and above
+
         if comboCount >= 2 {
             showComboBanner = true
-            // Auto-hide after 2 seconds
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
                 self.showComboBanner = false
             }
@@ -210,28 +226,22 @@ class BirdEvolutionGameViewModel: ObservableObject {
     func undo() {
         guard canUndo else { return }
         guard let previousState = gameStateHistory.popLast() else { return }
-        
-        // Restore previous state but keep the decremented undo count
+
         var restoredState = previousState
         restoredState.undosRemaining = gameState.undosRemaining - 1
-        
+
         gameState = restoredState
-        
-        // Decrement session moves since we're undoing
+
         if currentSessionMoves > 0 {
             currentSessionMoves -= 1
         }
-        
-        // Mark that undo has been used
+
         hasUsedUndo = true
         TutorialManager.shared.markUndoSeen()
     }
 
     private func saveStateToHistory() {
-        // Save current state
         gameStateHistory.append(gameState)
-
-        // Limit history size to maxHistorySize
         if gameStateHistory.count > maxHistorySize {
             gameStateHistory.removeFirst()
         }
@@ -247,137 +257,43 @@ class BirdEvolutionGameViewModel: ObservableObject {
             persistenceManager.saveBestScore(bestScore, for: gridSize.rawValue)
         }
     }
-    
-    // MARK: - Power-Up Activation
-    
-    func activatePowerUp(at position: Position) {
-        guard let powerUpType = gameState.powerUpGrid[position.row][position.col] else {
-            return
-        }
-        
-        // Play sound effect
-        AudioManager.shared.playPowerUpSound(type: powerUpType)
-        
-        switch powerUpType {
-        case .bomb:
-            activateBomb(at: position)
-        case .rainbow:
-            activateRainbow(at: position)
-        case .multiplier:
-            activateMultiplier()
-        case .shuffle:
-            activateShuffle()
-        }
-        
-        // Remove power-up after activation
-        gameState.powerUpGrid[position.row][position.col] = nil
-        activePowerUpPositions.remove(position)
-    }
-    
-    private func activateBomb(at position: Position) {
-        let result = PowerUpEffects.activateBomb(at: position, grid: &gameState.grid, gridSize: gameState.gridSize)
-        gameState.score += result.pointsEarned
-        
-        // Restore Energy from Bomb
-        // Restore Energy from Bomb
-        if result.pointsEarned > 0 {
-            // Base energy from score
-            let baseEnergy = Double(result.pointsEarned) * EnergyConfig.energyPerScorePoint
-            
-            // Bomb acts as a mega-charger: 3x efficiency + flat bonus
-            let bombMultiplier = 3.0
-            let flatBonus = 10.0 // Guaranteed chunk of energy
-            
-            let totalBombEnergy = (baseEnergy * bombMultiplier) + flatBonus
-            
-            gameState.energy += totalBombEnergy
-            gameState.energy = min(gameState.energy, gameState.maxEnergy)
-        }
-        
-        gameState.maxTileValue = gameState.calculatedMaxTileValue
-    }
-    
-    private func activateRainbow(at position: Position) {
-        if let targetPosition = PowerUpEffects.activateRainbow(at: position, grid: &gameState.grid, gridSize: gameState.gridSize) {
-            // Merge rainbow tile with target
-            // Rainbow behaves like a Joker: it mimics the target tile to upgrade it
-            let targetValue = gameState.grid[targetPosition.row][targetPosition.col]
-            let mergedValue = targetValue * 2
-            
-            gameState.grid[targetPosition.row][targetPosition.col] = mergedValue
-            gameState.grid[position.row][position.col] = 0
-            gameState.score += mergedValue
-            gameState.maxTileValue = gameState.calculatedMaxTileValue
-        }
-    }
-    
-    private func activateMultiplier() {
-        // Set flag for next merge to be doubled
-        gameState.activeMultiplier = true
-    }
-    
-    private func activateShuffle() {
-        // Fix for "Inout writeback" error: copy properties to local vars
-        var grid = gameState.grid
-        var powerUpGrid = gameState.powerUpGrid
-        
-        // Pass local copies
-        PowerUpEffects.activateShuffle(grid: &grid, powerUpGrid: &powerUpGrid, gridSize: gameState.gridSize)
-        
-        // Assign back to gameState
-        gameState.grid = grid
-        gameState.powerUpGrid = powerUpGrid
-        
-        // Rebuild active positions cache because tiles moved
-        activePowerUpPositions.removeAll()
-        for r in 0..<gameState.gridSize {
-            for c in 0..<gameState.gridSize {
-                if gameState.powerUpGrid[r][c] != nil {
-                    activePowerUpPositions.insert(Position(row: r, col: c))
-                }
-            }
-        }
-        
-        gameState.maxTileValue = gameState.calculatedMaxTileValue
-    }
-    
+
     // MARK: - Time Attack Logic
-    
+
     private func startEnergyDecay() {
-        stopEnergyDecay() // Ensure previous timer is invalidated
-        
+        stopEnergyDecay()
+
         gameTimer = Timer.scheduledTimer(withTimeInterval: EnergyConfig.decayInterval, repeats: true) { [weak self] _ in
             guard let self = self else { return }
             guard !self.gameState.gameOver && !self.gameState.hasWon else {
                 self.stopEnergyDecay()
                 return
             }
-            
-            // Apply decay based on elapsed time (interval * rate)
+            guard !self.isEnergyFrozen else { return }
+
             let decayAmount = EnergyConfig.decayInterval * EnergyConfig.timeDecayRate
             self.gameState.energy -= decayAmount
-            
-            // Check for game over
+
             if self.gameState.energy <= 0 {
                 self.gameState.energy = 0
                 self.gameState.gameOver = true
                 self.stopEnergyDecay()
-                AudioManager.shared.playPowerUpSound(type: .bomb)
+                AudioServicesPlaySystemSound(1005)
             }
         }
     }
-    
+
     private func stopEnergyDecay() {
         gameTimer?.invalidate()
         gameTimer = nil
     }
-    
+
     // MARK: - App Lifecycle Management
-    
+
     func pauseGame() {
         stopEnergyDecay()
     }
-    
+
     func resumeGame() {
         if !gameState.gameOver && !gameState.hasWon {
             startEnergyDecay()
@@ -387,17 +303,8 @@ class BirdEvolutionGameViewModel: ObservableObject {
     // MARK: - Debug/Test Functions
     #if DEBUG
     func fillAllCellsRandom() {
-        // Clear existing powerups first to avoid stale state
-        for r in 0..<gameState.gridSize {
-            for c in 0..<gameState.gridSize {
-                gameState.powerUpGrid[r][c] = nil
-            }
-        }
-        activePowerUpPositions.removeAll()
-
         let tiles = [16384, 8192, 4096, 2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2]
         var index = 0
-        
         for row in 0..<gameState.gridSize {
             for col in 0..<gameState.gridSize {
                 gameState.grid[row][col] = tiles[index % tiles.count]
@@ -406,39 +313,29 @@ class BirdEvolutionGameViewModel: ObservableObject {
         }
         gameState.maxTileValue = gameState.calculatedMaxTileValue
     }
-    
+
     func testWinScreen() {
-        // Create a grid with 2048 tile for testing win screen
         var testGrid = Array(repeating: Array(repeating: 0, count: gameState.gridSize), count: gameState.gridSize)
-        
-        // Add 2048 tile in center
         let center = gameState.gridSize / 2
         testGrid[center][center] = 2048
-        
-        // Add some other tiles around it
         testGrid[0][0] = 2
         testGrid[0][1] = 4
         testGrid[1][0] = 8
         testGrid[1][1] = 16
-        
         gameState.grid = testGrid
         gameState.maxTileValue = 2048
         gameState.hasWon = true
         gameState.score = 12345
         gameState.gameOver = false
     }
-    
+
     func testGameOver() {
-        // Fill grid with non-mergeable tiles for testing game over
         var testGrid = Array(repeating: Array(repeating: 0, count: gameState.gridSize), count: gameState.gridSize)
-        
         for row in 0..<gameState.gridSize {
             for col in 0..<gameState.gridSize {
-                // Alternate between 2 and 4 to make grid full but not mergeable
                 testGrid[row][col] = (row + col) % 2 == 0 ? 2 : 4
             }
         }
-        
         gameState.grid = testGrid
         gameState.gameOver = true
         gameState.score = 5678
@@ -500,31 +397,30 @@ class BirdEvolutionGameViewModel: ObservableObject {
     func changeGridSize(to newSize: GridSize) {
         guard newSize != gridSize else { return }
 
-        // Save current game session if in progress
         if gameState.score > 0 || currentSessionMoves > 0 {
             recordGameSession()
         }
 
-        // Update grid size
         gridSize = newSize
         saveGridSize()
-
-        // Recreate game model with new size
         gameModel = GameModel(gridSize: newSize.rawValue)
-
-        // Load best score for new grid size
         loadBestScore()
 
-        // Start new game with new grid size
         gameState = gameModel.createNewGame()
         currentSessionMoves = 0
         currentSessionStartTime = Date()
 
-        // Clear undo history
         gameStateHistory.removeAll()
         gameState.undosRemaining = GameConstants.maxUndos
-        
-        // Mark grid size hint as seen
+
+        // Reset power-up state — start each game with 3 of every type
+        powerUpInventory = Dictionary(uniqueKeysWithValues: PowerUpType.allCases.map { ($0, 3) })
+        freezeTimer?.cancel()
+        freezeTimer = nil
+        isEnergyFrozen = false
+        hintDirection = nil
+
+        startEnergyDecay()
         TutorialManager.shared.markGridSizeSeen()
     }
 
@@ -540,4 +436,3 @@ class BirdEvolutionGameViewModel: ObservableObject {
         UserDefaults.standard.set(gridSize.rawValue, forKey: "selectedGridSize")
     }
 }
-

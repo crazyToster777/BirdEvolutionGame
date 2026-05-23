@@ -1,54 +1,42 @@
 import SwiftUI
 
-struct PowerUpIndicatorView: View {
-    let powerUpType: PowerUpType?
-    let tileSize: CGFloat
-    
+struct PowerUpBarItemView: View {
+    let type: PowerUpType
+    let count: Int
+    let onTap: () -> Void
+
     var body: some View {
-        if let powerUp = powerUpType {
-            ZStack {
-                // Glow effect
-                Circle()
-                    .fill(
-                        RadialGradient(
-                            colors: [powerUpColor.opacity(0.6), powerUpColor.opacity(0)],
-                            center: .center,
-                            startRadius: 0,
-                            endRadius: tileSize * 0.6
-                        )
-                    )
-                    .frame(width: tileSize * 1.2, height: tileSize * 1.2)
-                
-                // Power-up emoji
-                Text(powerUp.emoji)
-                    .font(.system(size: tileSize * 0.4))
-                    .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 2)
+        Button(action: onTap) {
+            VStack(spacing: 4 * DeviceInfo.spacingMultiplier) {
+                Text(type.emoji).font(.system(size: 28 * DeviceInfo.fontMultiplier))
+                Text(type.displayName)
+                    .font(.system(size: 10 * DeviceInfo.fontMultiplier, weight: .semibold))
+                    .foregroundColor(.primary).lineLimit(1).minimumScaleFactor(0.7)
             }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8 * DeviceInfo.paddingMultiplier)
+            .background(.ultraThinMaterial)
+            .cornerRadius(12)
+            .overlay(RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.yellow.opacity(count > 0 ? 0.6 : 0.2), lineWidth: 1.5))
+            .overlay(alignment: .topTrailing) {
+                Text("\(count)").font(.system(size: 12, weight: .bold)).foregroundColor(.white)
+                    .frame(width: 20, height: 20)
+                    .background(count > 0 ? Color.orange : Color.gray)
+                    .clipShape(Circle()).offset(x: 6, y: -6)
+            }
+            .opacity(count > 0 ? 1.0 : 0.4)
         }
-    }
-    
-    private var powerUpColor: Color {
-        guard let powerUp = powerUpType else { return .clear }
-        
-        switch powerUp {
-        case .bomb:
-            return .red
-        case .rainbow:
-            return .purple
-        case .multiplier:
-            return .orange
-        case .shuffle:
-            return .blue
-        }
+        .disabled(count == 0)
     }
 }
 
 #Preview {
-    HStack(spacing: 20) {
-        PowerUpIndicatorView(powerUpType: .bomb, tileSize: 70)
-        PowerUpIndicatorView(powerUpType: .rainbow, tileSize: 70)
-        PowerUpIndicatorView(powerUpType: .multiplier, tileSize: 70)
-        PowerUpIndicatorView(powerUpType: .shuffle, tileSize: 70)
+    HStack(spacing: 12) {
+        PowerUpBarItemView(type: .energyRush, count: 3, onTap: {})
+        PowerUpBarItemView(type: .freeze, count: 0, onTap: {})
+        PowerUpBarItemView(type: .smash, count: 1, onTap: {})
+        PowerUpBarItemView(type: .hint, count: 5, onTap: {})
     }
     .padding()
     .background(Color.gray.opacity(0.3))
