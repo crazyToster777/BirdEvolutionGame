@@ -19,7 +19,7 @@ struct MainView: View {
             topBar
             contentStack
         }
-        .background { backgroundLayer }
+        .background(ignoresSafeAreaEdges: .all) { backgroundContent }
         .onAppear(perform: handleAppear)
         .sheet(isPresented: $showingGridSelector) {
             GridSizeSelector(currentSize: game.gridSize).environmentObject(game)
@@ -56,15 +56,13 @@ struct MainView: View {
     // MARK: - Background
 
     @ViewBuilder
-    private var backgroundLayer: some View {
+    private var backgroundContent: some View {
         if let imageName = themeManager.currentBackground.backgroundImageName {
             Image(imageName)
                 .resizable()
                 .aspectRatio(contentMode: .fill)
-                .ignoresSafeArea()
         } else {
             themeManager.currentBackground.color
-                .ignoresSafeArea()
         }
     }
 
