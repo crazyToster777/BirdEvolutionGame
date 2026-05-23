@@ -15,13 +15,11 @@ struct MainView: View {
     // MARK: - Body
 
     var body: some View {
-        ZStack {
-            backgroundLayer
-            VStack(spacing: 0) {
-                topBar
-                contentStack
-            }
+        VStack(spacing: 0) {
+            topBar
+            contentStack
         }
+        .background { backgroundLayer }
         .onAppear(perform: handleAppear)
         .sheet(isPresented: $showingGridSelector) {
             GridSizeSelector(currentSize: game.gridSize).environmentObject(game)
