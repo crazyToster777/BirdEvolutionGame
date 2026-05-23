@@ -14,7 +14,9 @@ struct MainHeaderSection: View {
             EnergyHeaderView(
                 energy: game.gameState.energy,
                 maxEnergy: game.gameState.maxEnergy,
-                bestScore: game.bestScore
+                score: game.score,
+                bestScore: game.bestScore,
+                isFrozen: game.isEnergyFrozen
             )
             .frame(maxWidth: boardWidth > 0 ? boardWidth : 320 * DeviceInfo.paddingMultiplier)
         }

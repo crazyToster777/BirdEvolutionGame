@@ -19,7 +19,7 @@ enum PowerUpType: String, Codable, CaseIterable {
     var description: String {
         switch self {
         case .energyRush: return "+40 energy instantly"
-        case .freeze: return "Pause time-decay 15s"
+        case .freeze: return "Pause time-decay until next swipe"
         case .smash: return "Remove lowest tiles"
         case .hint: return "Flash best swipe direction"
         }

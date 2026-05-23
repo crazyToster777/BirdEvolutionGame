@@ -3,34 +3,50 @@ import SwiftUI
 struct EnergyHeaderView: View {
     let energy: Double
     let maxEnergy: Double
+    let score: Int
     let bestScore: Int
-    
+    var isFrozen: Bool = false
+
+    @State private var frozenPulse = false
+
     // Calculate percentage for width
     private var progress: Double {
         return max(0, min(1.0, energy / maxEnergy))
     }
-    
+
     private var energyColor: Color {
+        if isFrozen { return .cyan }
         if progress > 0.5 { return .green }
         if progress > 0.2 { return .orange }
         return .red
     }
-    
+
     var body: some View {
         HStack(spacing: 20 * DeviceInfo.paddingMultiplier) {
             // Energy Value
             VStack(alignment: .leading, spacing: 4) {
-                Text("SURVIVAL ENERGY")
-                    .font(.caption2.bold())
-                    .foregroundColor(.secondary)
-                    .tracking(1)
-                
+                HStack(spacing: 4) {
+                    Text("SURVIVAL ENERGY")
+                        .font(.caption2.bold())
+                        .foregroundColor(.secondary)
+                        .tracking(1)
+                    if isFrozen {
+                        Text("❄️ FROZEN")
+                            .font(.caption2.bold())
+                            .foregroundColor(.cyan)
+                            .opacity(frozenPulse ? 1 : 0.4)
+                            .animation(.easeInOut(duration: 0.7).repeatForever(), value: frozenPulse)
+                            .onAppear { frozenPulse = true }
+                            .onDisappear { frozenPulse = false }
+                    }
+                }
+
                 HStack(alignment: .bottom, spacing: 4) {
                     Text("\(Int(energy))")
                         .font(.system(size: 32 * DeviceInfo.fontMultiplier, weight: .black))
                         .foregroundColor(energyColor)
                         .contentTransition(.numericText())
-                    
+
                     Text("/ \(Int(maxEnergy))")
                         .font(.title3.bold())
                         .foregroundColor(.secondary.opacity(0.5))
@@ -41,16 +57,29 @@ struct EnergyHeaderView: View {
             
             Spacer()
             
-            // Best Score (kept for history)
-            VStack(alignment: .trailing, spacing: 4) {
-                Text("BEST RECORD")
-                    .font(.caption2.bold())
-                    .foregroundColor(.secondary)
-                    .tracking(1)
-                
-                Text("\(bestScore)")
-                    .font(.title3.bold())
-                    .foregroundColor(.primary)
+            // Score + Best
+            VStack(alignment: .trailing, spacing: 6) {
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("SCORE")
+                        .font(.caption2.bold())
+                        .foregroundColor(.secondary)
+                        .tracking(1)
+                    Text("\(score)")
+                        .font(.system(size: 24 * DeviceInfo.fontMultiplier, weight: .black))
+                        .foregroundColor(.primary)
+                        .contentTransition(.numericText())
+                }
+                .animation(.spring(), value: score)
+
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("BEST")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundColor(.secondary.opacity(0.7))
+                        .tracking(1)
+                    Text("\(bestScore)")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.secondary)
+                }
             }
         }
         .padding()
@@ -59,14 +88,13 @@ struct EnergyHeaderView: View {
         .overlay(
             RoundedRectangle(cornerRadius: 12)
                 .stroke(
-                    LinearGradient(
-                        colors: [.primary.opacity(0.3), .primary.opacity(0.1)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 1.5
+                    isFrozen
+                        ? LinearGradient(colors: [.cyan.opacity(0.8), .blue.opacity(0.4)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                        : LinearGradient(colors: [.primary.opacity(0.3), .primary.opacity(0.1)], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    lineWidth: isFrozen ? 2 : 1.5
                 )
         )
+        .animation(.easeInOut(duration: 0.3), value: isFrozen)
         .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
         .overlay(alignment: .bottom) {
             // Progress Bar
@@ -98,9 +126,9 @@ struct EnergyHeaderView: View {
 
 #Preview {
     VStack {
-        EnergyHeaderView(energy: 85, maxEnergy: 100, bestScore: 24000)
-        EnergyHeaderView(energy: 40, maxEnergy: 100, bestScore: 24000)
-        EnergyHeaderView(energy: 10, maxEnergy: 100, bestScore: 24000)
+        EnergyHeaderView(energy: 85, maxEnergy: 100, score: 1240, bestScore: 24000)
+        EnergyHeaderView(energy: 85, maxEnergy: 100, score: 1240, bestScore: 24000, isFrozen: true)
+        EnergyHeaderView(energy: 10, maxEnergy: 100, score: 23500, bestScore: 24000)
     }
     .padding()
 }

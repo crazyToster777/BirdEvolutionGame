@@ -15,57 +15,59 @@ struct MainView: View {
     // MARK: - Body
 
     var body: some View {
-        NavigationView {
-            ZStack(alignment: .top) {
-                backgroundLayer
+        ZStack {
+            backgroundLayer
+            NavigationView {
                 contentStack
-            }
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    GridSizeToolbarButton { showingGridSelector = true }
+                .background(Color.clear)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        GridSizeToolbarButton { showingGridSelector = true }
+                    }
+                    ToolbarItemGroup(placement: .navigationBarTrailing) {
+                        #if DEBUG
+                        debugMenu
+                        #endif
+                        ThemeMenuButton()
+                        SoundToggleButton()
+                        CalendarToolbarButton { showingCalendar = true }
+                    }
                 }
-                ToolbarItemGroup(placement: .navigationBarTrailing) {
-                    #if DEBUG
-                    debugMenu
-                    #endif
-                    ThemeMenuButton()
-                    SoundToggleButton()
-                    CalendarToolbarButton { showingCalendar = true }
+                .onAppear(perform: handleAppear)
+                .sheet(isPresented: $showingGridSelector) {
+                    GridSizeSelector(currentSize: game.gridSize).environmentObject(game)
                 }
+                .sheet(isPresented: $showingCalendar) {
+                    CalendarView().environmentObject(game)
+                }
+                .fullScreenCover(isPresented: $showOnboarding) {
+                    OnboardingView(isPresented: $showOnboarding)
+                }
+                .sheet(isPresented: $game.gameState.hasWon) {
+                    WinView(
+                        score: game.score,
+                        maxTile: game.maxTileValue,
+                        onContinue: {},
+                        onNewGame: { game.startNewGame() }
+                    )
+                }
+                .sheet(isPresented: $game.gameState.gameOver) {
+                    GameOverView(
+                        score: game.score,
+                        bestScore: game.bestScore,
+                        canUndo: game.canUndo,
+                        onUndo: { game.undo() },
+                        onNewGame: { game.startNewGame() }
+                    )
+                }
+                .overlayPreferenceValue(BoardAnchorKey.self, boardHintOverlay)
+                .overlayPreferenceValue(UndoAreaAnchorKey.self, undoHintOverlay)
+                .overlayPreferenceValue(GridSizeButtonFrameKey.self, gridSizeHintOverlay)
             }
-            .onAppear(perform: handleAppear)
-            .sheet(isPresented: $showingGridSelector) {
-                GridSizeSelector(currentSize: game.gridSize).environmentObject(game)
-            }
-            .sheet(isPresented: $showingCalendar) {
-                CalendarView().environmentObject(game)
-            }
-            .fullScreenCover(isPresented: $showOnboarding) {
-                OnboardingView(isPresented: $showOnboarding)
-            }
-            .sheet(isPresented: $game.gameState.hasWon) {
-                WinView(
-                    score: game.score,
-                    maxTile: game.maxTileValue,
-                    onContinue: {},
-                    onNewGame: { game.startNewGame() }
-                )
-            }
-            .sheet(isPresented: $game.gameState.gameOver) {
-                GameOverView(
-                    score: game.score,
-                    bestScore: game.bestScore,
-                    canUndo: game.canUndo,
-                    onUndo: { game.undo() },
-                    onNewGame: { game.startNewGame() }
-                )
-            }
-            .overlayPreferenceValue(BoardAnchorKey.self, boardHintOverlay)
-            .overlayPreferenceValue(UndoAreaAnchorKey.self, undoHintOverlay)
-            .overlayPreferenceValue(GridSizeButtonFrameKey.self, gridSizeHintOverlay)
+            .background(Color.clear)
+            .navigationViewStyle(.stack)
+            .onChange(of: scenePhase, perform: handleScenePhase)
         }
-        .navigationViewStyle(.stack)
-        .onChange(of: scenePhase, perform: handleScenePhase)
     }
 
     // MARK: - Background

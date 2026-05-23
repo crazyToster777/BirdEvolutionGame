@@ -53,6 +53,10 @@ class BirdEvolutionGameViewModel: ObservableObject {
         gameState.undosRemaining = GameConstants.maxUndos
     }
 
+    func grantPowerUp(_ type: PowerUpType) {
+        powerUpInventory[type] = 3
+    }
+
     func startNewGame() {
         if gameState.score > 0 || currentSessionMoves > 0 {
             recordGameSession()
@@ -94,6 +98,12 @@ class BirdEvolutionGameViewModel: ObservableObject {
             comboSystem.reset()
             updateComboUI()
             return ([], [])
+        }
+
+        if isEnergyFrozen {
+            isEnergyFrozen = false
+            freezeTimer?.cancel()
+            freezeTimer = nil
         }
 
         currentSessionMoves += 1

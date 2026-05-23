@@ -6,12 +6,21 @@ struct PowerUpBarView: View {
     var body: some View {
         HStack(spacing: 8 * DeviceInfo.spacingMultiplier) {
             ForEach(PowerUpType.allCases, id: \.self) { type in
-                PowerUpBarItemView(
-                    type: type,
-                    count: game.powerUpInventory[type, default: 0]
-                ) {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                        game.activatePowerUp(type)
+                let count = game.powerUpInventory[type, default: 0]
+                if count == 0 {
+                    PowerUpAdItemView(type: type) {
+                        game.grantPowerUp(type)
+                    }
+                    .onAppear { RewardedAdManager.shared.load() }
+                } else {
+                    PowerUpBarItemView(
+                        type: type,
+                        count: count,
+                        isActive: type == .freeze && game.isEnergyFrozen
+                    ) {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                            game.activatePowerUp(type)
+                        }
                     }
                 }
             }
